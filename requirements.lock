@@ -1,0 +1,4 @@
+click==6.6
+numpy==1.11.2
+opencv-python==3.1.0.3
+requests==2.12.1
