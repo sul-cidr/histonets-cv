@@ -23,6 +23,7 @@ deploy:
     tags: true
 env:
 - TOXENV=py35
+- TOXENV=flake8
 install: pip install -U tox
 language: python
 python: 3.5
