@@ -1,3 +1,4 @@
 search: False
 requirements:
-  - requirements.lock
+  - requirements.lock:
+    pin: False
