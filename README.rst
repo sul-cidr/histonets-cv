@@ -17,6 +17,9 @@ Histonets Computer Vision
      :target: https://pyup.io/repos/github/sul-cidr/histonets-cv/
      :alt: Updates
 
+.. image:: https://codecov.io/gh/sul-cidr/histonets-cv/branch/master/graph/badge.svg
+     :target: https://codecov.io/gh/sul-cidr/histonets-cv
+     :alt: Test Coverage
 
 Computer vision part of the Histonets project
 
