@@ -7,34 +7,40 @@ test_histonets
 
 Tests for `histonets` module.
 """
-
-
-import sys
+import os
 import unittest
-from contextlib import contextmanager
 from click.testing import CliRunner
 
-from histonets import histonets
 from histonets import cli
 
 
-
-class TestHistonets(unittest.TestCase):
-
+class TestHistonetsCli(unittest.TestCase):
     def setUp(self):
-        pass
+        self.image_url = 'http://httpbin.org/image/jpeg'
+        self.image_file = 'file://' + os.path.join('tests', 'test.png')
+        self.image_404 = 'file:///not_found.png'
+        self.runner = CliRunner()
 
     def tearDown(self):
         pass
 
-    def test_000_something(self):
-        pass
-
     def test_command_line_interface(self):
-        runner = CliRunner()
-        result = runner.invoke(cli.main)
+        result = self.runner.invoke(cli.main)
         assert result.exit_code == 0
-        assert 'histonets.cli.main' in result.output
-        help_result = runner.invoke(cli.main, ['--help'])
+        help_result = self.runner.invoke(cli.main, ['--help'])
         assert help_result.exit_code == 0
         assert '--help  Show this message and exit.' in help_result.output
+
+    def test_download_command_image_file(self):
+        result = self.runner.invoke(cli.download, [self.image_file])
+        assert 'Error' not in result.output
+        assert len(result.output) > 1
+
+    def test_download_command_image_url(self):
+        result = self.runner.invoke(cli.download, [self.image_url])
+        assert 'Error' not in result.output
+        assert len(result.output) > 1
+
+    def test_download_command_image_ot_found(self):
+        result = self.runner.invoke(cli.download, [self.image_404])
+        assert 'Error' in result.output

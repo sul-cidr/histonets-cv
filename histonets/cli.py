@@ -1,14 +1,18 @@
 # -*- coding: utf-8 -*-
-
 import click
 
+from .utils import open_image
 
-@click.command()
-def main(args=None):
-    """Console script for histonets"""
-    click.echo("Replace this message by putting your code into "
-               "histonets.cli.main")
-    click.echo("See click documentation at http://click.pocoo.org/")
+
+@click.group()
+def main():
+    """Histonets computer vision application for image processing"""
+
+
+@main.command()
+@click.argument("image", callback=open_image)
+def download(image):
+    click.echo(image.image)
 
 
 if __name__ == "__main__":
