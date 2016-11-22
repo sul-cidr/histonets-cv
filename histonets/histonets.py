@@ -4,7 +4,7 @@ import numpy as np
 
 def adjust_contrast(image, contrast):
     if (contrast < -100):
-        contrast = 0
+        contrast = -100
     elif (contrast > 100):
         contrast = 100
     contrast = (contrast + 100) / 100
