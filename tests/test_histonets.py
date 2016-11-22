@@ -16,7 +16,25 @@ import cv2
 import numpy as np
 from click.testing import CliRunner
 
+import histonets
 from histonets import cli
+
+
+class TestHistonets(unittest.TestCase):
+    def setUp(self):
+        self.image = cv2.imread(os.path.join('tests', 'test.png'))
+
+    def test_adjust_high_contrast(self):
+        image = self.image
+        image_high_contrast = histonets.adjust_contrast(image, 50)
+        test_high_contrast = cv2.imread('tests/test_high_contrast.png')
+        assert np.array_equal(image_high_contrast, test_high_contrast)
+
+    def test_adjust_low_contrast(self):
+        image = self.image
+        image_low_contrast = histonets.adjust_contrast(image, -50)
+        test_low_contrast = cv2.imread('tests/test_low_contrast.png')
+        assert np.array_equal(image_low_contrast, test_low_contrast)
 
 
 class TestHistonetsCli(unittest.TestCase):
