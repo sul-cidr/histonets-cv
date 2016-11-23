@@ -34,6 +34,18 @@ class TestHistonets(unittest.TestCase):
         test_low_contrast = cv2.imread('tests/test_low_contrast.png')
         assert np.array_equal(image_low_contrast, test_low_contrast)
 
+    def test_lower_brightness(self):
+        image = self.image
+        image_low_brightness = histonets.adjust_brightness(image, -50)
+        test_low_brightness = cv2.imread('tests/test_brightness_darken.png')
+        assert np.array_equal(image_low_brightness, test_low_brightness)
+
+    def test_higher_brightness(self):
+        image = self.image
+        image_high_brightness = histonets.adjust_brightness(image, 50)
+        test_high_brightness = cv2.imread('tests/test_brightness_lighten.png')
+        assert np.array_equal(image_high_brightness, test_high_brightness)
+
 
 class TestHistonetsCli(unittest.TestCase):
     def setUp(self):
