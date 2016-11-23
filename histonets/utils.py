@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
+import base64
 import errno
 import imghdr
 import io
+import json
 import locale
 import stat
 import os
@@ -74,6 +76,7 @@ class FileAdapter(BaseAdapter):
 
 
 class Image(object):
+    """Proxy class to hanle image input in the commands"""
     __slots__ = ('url', 'response', 'image', 'format')
 
     def __init__(self, url, response):
@@ -91,13 +94,50 @@ class Image(object):
             raise click.BadParameter('Image format not supported')
 
 
-def open_image(ctx, param, value):
-    session = requests.Session()
-    session.mount('file://', FileAdapter())
+def io_handler(f, *args, **kwargs):
+    """Decorator to handle the 'image' argument and the 'output' option"""
 
-    if value is not None:
-        try:
-            response = session.get(value)
-            return Image(value, response)
-        except Exception as e:
-            raise click.BadParameter(e)
+    def get_image(ctx, param, value):
+        """Helper that adds a file:// adapter and returns an Image object"""
+        session = requests.Session()
+        session.mount('file://', FileAdapter())
+
+        if value is not None:
+            try:
+                response = session.get(value)
+                return Image(value, response)
+            except Exception as e:
+                raise click.BadParameter(e)
+
+    @click.argument('image', callback=get_image)
+    @click.option('--output', '-o', type=click.File('wb'))
+    def wrapper(*args, **kwargs):
+        image = kwargs.get('image') or args[0]
+        output = kwargs.pop('output')
+        ctx = click.get_current_context()
+        result = ctx.invoke(f, *args, **kwargs)
+        result_is_image = isinstance(result, np.ndarray)
+        if result_is_image:
+            if output and '.' in output.name:
+                image_format = output.name.split('.')[-1]
+            else:
+                image_format = image.format
+            try:
+                _, result = cv2.imencode(".{}".format(image_format), result)
+            except cv2.error:
+                raise click.BadParameter('Image format output not supported')
+        else:
+            encoding = locale.getpreferredencoding(False)
+            try:
+                result = json.dumps(result).encode(encoding)
+            except LookupError:
+                result = json.dumps(result).encode('utf8')
+        if output is not None:
+            output.write(result)
+        else:
+            if result_is_image:
+                result = base64.b64encode(result)
+            click.echo(result)
+
+    wrapper.__name__ = f.__name__  # needed for click to work
+    return wrapper

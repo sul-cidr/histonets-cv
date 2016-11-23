@@ -1,19 +1,20 @@
 # -*- coding: utf-8 -*-
 import click
 
-from .utils import open_image
+from .utils import io_handler
 
 
 @click.group()
+@click.version_option()
 def main():
     """Histonets computer vision application for image processing"""
 
 
 @main.command()
-@click.argument("image", callback=open_image)
+@io_handler
 def download(image):
-    click.echo(image.image)
+    return image.image
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
