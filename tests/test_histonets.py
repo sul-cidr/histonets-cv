@@ -7,8 +7,13 @@ test_histonets
 
 Tests for `histonets` module.
 """
+import io
 import os
+import tempfile
 import unittest
+
+import cv2
+import numpy as np
 from click.testing import CliRunner
 
 from histonets import cli
@@ -19,6 +24,14 @@ class TestHistonetsCli(unittest.TestCase):
         self.image_url = 'http://httpbin.org/image/jpeg'
         self.image_file = 'file://' + os.path.join('tests', 'test.png')
         self.image_404 = 'file:///not_found.png'
+        self.image_jpg = os.path.join('tests', 'test.jpg')
+        self.image_png = os.path.join('tests', 'test.png')
+        self.image_b64 = os.path.join('tests', 'test.b64')
+        self.tmp_jpg = os.path.join(tempfile.gettempdir(), 'test.jpg')
+        self.tmp_png = os.path.join(tempfile.gettempdir(), 'test.png')
+        self.tmp_tiff = os.path.join(tempfile.gettempdir(), 'test.tiff')
+        self.tmp_no_format = os.path.join(tempfile.gettempdir(), 'test')
+        self.tmp_invalid_format = os.path.join(tempfile.gettempdir(), 'test.a')
         self.runner = CliRunner()
 
     def tearDown(self):
@@ -29,7 +42,10 @@ class TestHistonetsCli(unittest.TestCase):
         assert result.exit_code == 0
         help_result = self.runner.invoke(cli.main, ['--help'])
         assert help_result.exit_code == 0
-        assert '--help  Show this message and exit.' in help_result.output
+        assert '--help' in help_result.output
+        assert 'Show this message and exit.' in help_result.output
+        assert '--version' in help_result.output
+        assert 'Show the version and exit.' in help_result.output
 
     def test_download_command_image_file(self):
         result = self.runner.invoke(cli.download, [self.image_file])
@@ -41,6 +57,70 @@ class TestHistonetsCli(unittest.TestCase):
         assert 'Error' not in result.output
         assert len(result.output) > 1
 
-    def test_download_command_image_ot_found(self):
+    def test_download_command_image_not_found(self):
         result = self.runner.invoke(cli.download, [self.image_404])
         assert 'Error' in result.output
+
+    def test_io_handler_to_file_as_png(self):
+        result = self.runner.invoke(cli.download,
+            [self.image_file, '--output', self.tmp_png]
+        )
+        assert 'Error' not in result.output
+        assert len(result.output) == 0
+        image_png = cv2.imread(self.image_png)
+        tmp_png = cv2.imread(self.tmp_png)
+        assert np.array_equal(image_png, tmp_png)
+
+    def test_io_handler_to_file_as_jpg(self):
+        result = self.runner.invoke(cli.download,
+            [self.image_file, '--output', self.tmp_jpg]
+        )
+        assert 'Error' not in result.output
+        assert len(result.output) == 0
+        image_jpg = cv2.imread(self.image_jpg)
+        tmp_jpg = cv2.imread(self.tmp_jpg)
+        assert np.array_equal(image_jpg, tmp_jpg)
+
+    def test_io_handler_to_file_as_png(self):
+        result = self.runner.invoke(cli.download,
+            [self.image_file, '--output', self.tmp_png]
+        )
+        assert 'Error' not in result.output
+        assert len(result.output) == 0
+        image_png = cv2.imread(self.image_png)
+        tmp_png = cv2.imread(self.tmp_png)
+        assert np.array_equal(image_png, tmp_png)
+
+    def test_io_handler_to_file_and_convert_to_tiff(self):
+        result = self.runner.invoke(cli.download,
+            [self.image_file, '--output', self.tmp_tiff]
+        )
+        assert 'Error' not in result.output
+        assert len(result.output) == 0
+        image_png = cv2.imread(self.image_png)
+        tmp_tiff = cv2.imread(self.tmp_tiff)
+        assert np.array_equal(image_png, tmp_tiff)
+
+    def test_io_handler_to_file_with_no_format(self):
+        result = self.runner.invoke(cli.download,
+            [self.image_file, '--output', self.tmp_no_format]
+        )
+        assert 'Error' not in result.output
+        assert len(result.output) == 0
+        image_png = cv2.imread(self.image_png)
+        tmp_no_format = cv2.imread(self.tmp_no_format)
+        assert np.array_equal(image_png, tmp_no_format)
+
+    def test_io_handler_to_file_with_invalid_format(self):
+        result = self.runner.invoke(cli.download,
+            [self.image_file, '--output', self.tmp_invalid_format]
+        )
+        assert 'Error' in result.output
+        assert len(result.output) > 0
+
+    def test_io_handler_to_stdout(self):
+        result = self.runner.invoke(cli.download, [self.image_file])
+        assert 'Error' not in result.output
+        assert len(result.output) > 0
+        with io.open(self.image_b64) as image_b64:
+            assert result.output == image_b64.read()
