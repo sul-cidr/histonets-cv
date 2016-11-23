@@ -6,6 +6,7 @@ from .histonets import adjust_contrast, adjust_brightness
 
 
 @click.group()
+@click.version_option()
 def main():
     """Histonets computer vision application for image processing"""
 
