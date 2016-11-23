@@ -18,15 +18,15 @@ def download(image):
 
 
 @main.command()
-@io_handler
 @click.argument("value", type=click.IntRange(-100, 100))
+@io_handler
 def contrast(image, value):
     return adjust_contrast(image.image, value)
 
 
 @main.command()
-@io_handler
 @click.argument("value", type=click.IntRange(-100, 100))
+@io_handler
 def brightness(image, value):
     return adjust_brightness(image.image, value)
 
