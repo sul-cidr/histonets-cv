@@ -80,12 +80,12 @@ class TestHistonetsCli(unittest.TestCase):
     def test_download_command_image_file(self):
         result = self.runner.invoke(cli.download, [self.image_file])
         assert 'Error' not in result.output
-        assert len(result.output) > 1
+        assert len(result.output.strip()) > 1
 
     def test_download_command_image_url(self):
         result = self.runner.invoke(cli.download, [self.image_url])
         assert 'Error' not in result.output
-        assert len(result.output) > 1
+        assert len(result.output.strip()) > 1
 
     def test_download_command_image_not_found(self):
         result = self.runner.invoke(cli.download, [self.image_404])
@@ -106,7 +106,7 @@ class TestHistonetsCli(unittest.TestCase):
             [self.image_file, '--output', self.tmp_jpg]
         )
         assert 'Error' not in result.output
-        assert len(result.output) == 0
+        assert len(result.output.strip()) == 0
         image_jpg = cv2.imread(self.image_jpg)
         tmp_jpg = cv2.imread(self.tmp_jpg)
         assert np.array_equal(image_jpg, tmp_jpg)
@@ -116,7 +116,7 @@ class TestHistonetsCli(unittest.TestCase):
             [self.image_file, '--output', self.tmp_png]
         )
         assert 'Error' not in result.output
-        assert len(result.output) == 0
+        assert len(result.output.strip()) == 0
         image_png = cv2.imread(self.image_png)
         tmp_png = cv2.imread(self.tmp_png)
         assert np.array_equal(image_png, tmp_png)
@@ -126,7 +126,7 @@ class TestHistonetsCli(unittest.TestCase):
             [self.image_file, '--output', self.tmp_tiff]
         )
         assert 'Error' not in result.output
-        assert len(result.output) == 0
+        assert len(result.output.strip()) == 0
         image_png = cv2.imread(self.image_png)
         tmp_tiff = cv2.imread(self.tmp_tiff)
         assert np.array_equal(image_png, tmp_tiff)
@@ -136,7 +136,7 @@ class TestHistonetsCli(unittest.TestCase):
             [self.image_file, '--output', self.tmp_no_format]
         )
         assert 'Error' not in result.output
-        assert len(result.output) == 0
+        assert len(result.output.strip()) == 0
         image_png = cv2.imread(self.image_png)
         tmp_no_format = cv2.imread(self.tmp_no_format)
         assert np.array_equal(image_png, tmp_no_format)
@@ -146,11 +146,11 @@ class TestHistonetsCli(unittest.TestCase):
             [self.image_file, '--output', self.tmp_invalid_format]
         )
         assert 'Error' in result.output
-        assert len(result.output) > 0
+        assert len(result.output.strip()) > 0
 
     def test_io_handler_to_stdout(self):
         result = self.runner.invoke(cli.download, [self.image_file])
         assert 'Error' not in result.output
-        assert len(result.output) > 0
+        assert len(result.output.strip()) > 0
         with io.open(self.image_b64) as image_b64:
             assert result.output == image_b64.read()
