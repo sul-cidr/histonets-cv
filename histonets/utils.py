@@ -5,8 +5,8 @@ import imghdr
 import io
 import json
 import locale
-import stat
 import os
+import stat
 
 import click
 import cv2
@@ -101,13 +101,14 @@ def io_handler(f, *args, **kwargs):
         """Helper that adds a file:// adapter and returns an Image object"""
         session = requests.Session()
         session.mount('file://', FileAdapter())
-
         if value is not None:
             try:
                 response = session.get(value)
                 return Image(value, response)
             except Exception as e:
                 raise click.BadParameter(e)
+            finally:
+                session.close()
 
     @click.argument('image', callback=get_image)
     @click.option('--output', '-o', type=click.File('wb'))
