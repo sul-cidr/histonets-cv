@@ -111,7 +111,12 @@ def io_handler(f, *args, **kwargs):
                 session.close()
 
     @click.argument('image', callback=get_image)
-    @click.option('--output', '-o', type=click.File('wb'))
+    @click.option('--output', '-o', type=click.File('wb'),
+                  help='File path to store the output. For images, if '
+                       'the file extension is different than IMAGE, '
+                       'a conversion is made. When not given, standard '
+                       'output is used and images are serialized using '
+                       'Base64.')
     def wrapper(*args, **kwargs):
         image = kwargs.get('image') or args[0]
         output = kwargs.pop('output')
@@ -141,5 +146,7 @@ def io_handler(f, *args, **kwargs):
                 result = base64.b64encode(result)
             click.echo(result)
 
-    wrapper.__name__ = f.__name__  # needed for click to work
+    # needed for click to work
+    wrapper.__name__ = f.__name__
+    wrapper.__doc__ = f.__doc__
     return wrapper

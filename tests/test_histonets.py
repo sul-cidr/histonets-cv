@@ -76,6 +76,7 @@ class TestHistonetsCli(unittest.TestCase):
         assert 'Show this message and exit.' in help_result.output
         assert '--version' in help_result.output
         assert 'Show the version and exit.' in help_result.output
+        assert 'Download IMAGE.' in result.output
 
     def test_download_command_image_file(self):
         result = self.runner.invoke(cli.download, [self.image_file])
@@ -90,6 +91,10 @@ class TestHistonetsCli(unittest.TestCase):
     def test_download_command_image_not_found(self):
         result = self.runner.invoke(cli.download, [self.image_404])
         assert 'Error' in result.output
+
+    def test_download_command_help(self):
+        result = self.runner.invoke(cli.download, ['--help'])
+        assert 'Download IMAGE.' in result.output
 
     def test_io_handler_to_file_as_png(self):
         result = self.runner.invoke(cli.download,
