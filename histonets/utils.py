@@ -135,11 +135,11 @@ def io_handler(f, *args, **kwargs):
                 result = json.dumps(result).encode('utf8')
         if output is not None:
             output.write(result)
+            output.close()
         else:
             if result_is_image:
                 result = base64.b64encode(result)
             click.echo(result)
-        output.close()
 
     wrapper.__name__ = f.__name__  # needed for click to work
     return wrapper
