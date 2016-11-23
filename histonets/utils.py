@@ -76,7 +76,7 @@ class FileAdapter(BaseAdapter):
 
 
 class Image(object):
-    """Proxy class to hanle image input in the commands"""
+    """Proxy class to handle image input in the commands"""
     __slots__ = ('url', 'response', 'image', 'format')
 
     def __init__(self, url, response):
