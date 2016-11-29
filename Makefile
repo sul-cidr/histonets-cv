@@ -23,11 +23,29 @@ endef
 export PRINT_HELP_PYSCRIPT
 BROWSER := python -c "$$BROWSER_PYSCRIPT"
 
+define PRINT_README
+import sys, io
+content = ''.join([l for l in sys.stdin])
+lead = '.. commands_start'
+tail = '.. commands_end'
+with io.open('README.rst', 'r+') as f:
+	readme = f.read()
+	output = (readme.split(lead, 1)[0]
+		+ lead
+		+ '\n' + content + '\n'
+		+ tail
+		+ readme.split(tail, 1)[1])
+	f.seek(0)
+	f.write(output)
+	f.truncate()
+endef
+export PRINT_README
+README := python -c "$$PRINT_README"
+
 help:
 	@python -c "$$PRINT_HELP_PYSCRIPT" < $(MAKEFILE_LIST)
 
 clean: clean-build clean-pyc clean-test ## remove all build, test, coverage and Python artifacts
-
 
 clean-build: ## remove build artifacts
 	rm -fr build/
@@ -51,19 +69,16 @@ lint: ## check style with flake8
 	flake8 histonets tests
 
 test: ## run tests quickly with the default Python
-	
-		python setup.py test
+	python setup.py test
 
 test-all: ## run tests on every Python version with tox
 	tox
 
 coverage: ## check code coverage quickly with the default Python
-	
-		coverage run --source histonets setup.py test
-	
-		coverage report -m
-		coverage html
-		$(BROWSER) htmlcov/index.html
+	coverage run --source histonets setup.py test
+	coverage report -m
+	coverage html
+	$(BROWSER) htmlcov/index.html
 
 docs: ## generate Sphinx HTML documentation, including API docs
 	rm -f docs/histonets.rst
@@ -87,3 +102,6 @@ dist: clean ## builds source and wheel package
 
 install: clean ## install the package to the active Python's site-packages
 	python setup.py install
+
+readme:
+	histonets --rst | $(README)

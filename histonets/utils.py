@@ -112,11 +112,11 @@ def io_handler(f, *args, **kwargs):
 
     @click.argument('image', callback=get_image)
     @click.option('--output', '-o', type=click.File('wb'),
-                  help='File path to store the output. For images, if '
+                  help='File name to save the output. For images, if '
                        'the file extension is different than IMAGE, '
                        'a conversion is made. When not given, standard '
                        'output is used and images are serialized using '
-                       'Base64.')
+                       'Base64; and to JSON otherwise.')
     def wrapper(*args, **kwargs):
         image = kwargs.get('image') or args[0]
         output = kwargs.pop('output')
@@ -148,5 +148,9 @@ def io_handler(f, *args, **kwargs):
 
     # needed for click to work
     wrapper.__name__ = f.__name__
-    wrapper.__doc__ = f.__doc__
+    new_line = '' if '\b' in f.__doc__ else '\b\n\n'
+    wrapper.__doc__ = (
+        """{}{}\n    - IMAGE path to a local (file://) or """
+        """remote (http://, https://) image file.""".format(
+            f.__doc__, new_line))
     return wrapper

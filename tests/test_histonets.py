@@ -78,6 +78,15 @@ class TestHistonetsCli(unittest.TestCase):
         assert 'Show the version and exit.' in help_result.output
         assert 'Download IMAGE.' in result.output
 
+    def test_rst_option(self):
+        result = self.runner.invoke(cli.main)
+        assert result.exit_code == 0
+        help_result = self.runner.invoke(cli.main, ['--rst'])
+        assert help_result.exit_code == 0
+        assert '~' in help_result.output
+        assert 'Commands' in help_result.output
+        assert 'Options' in help_result.output
+
     def test_download_command_image_file(self):
         result = self.runner.invoke(cli.download, [self.image_file])
         assert 'Error' not in result.output

@@ -31,7 +31,76 @@ Computer vision part of the Histonets project
 Features
 --------
 
-* TODO
+.. commands_start
+
+Usage: histonets [OPTIONS] COMMAND [ARGS]...
+
+  Histonets computer vision application for image processing
+
+Options:
+  --rst      Show help in ReST format.
+  --version  Show the version and exit.
+  --help     Show this message and exit.
+
+
+Commands
+--------
+
+brightness
+~~~~~~~~~~
+Usage: histonets [OPTIONS] VALUE IMAGE
+
+Adjust brightness of IMAGE.
+
+- VALUE ranges from -100 to 100.
+- IMAGE path to a local (file://) or remote (http://, https://) image file.
+
+Options:
+
+  -o, --output FILENAME  File name to save the output. For images, if the file
+                         extension is different than IMAGE, a conversion is
+                         made. When not given, standard output is used and
+                         images are serialized using Base64; and to JSON
+                         otherwise.
+  
+
+contrast
+~~~~~~~~
+Usage: histonets [OPTIONS] VALUE IMAGE
+
+Adjust contrast of IMAGE.
+
+- VALUE ranges from -100 to 100.
+- IMAGE path to a local (file://) or remote (http://, https://) image file.
+
+Options:
+
+  -o, --output FILENAME  File name to save the output. For images, if the file
+                         extension is different than IMAGE, a conversion is
+                         made. When not given, standard output is used and
+                         images are serialized using Base64; and to JSON
+                         otherwise.
+  
+
+download
+~~~~~~~~
+Usage: histonets [OPTIONS] IMAGE
+
+Download IMAGE.
+
+- IMAGE path to a local (file://) or remote (http://, https://) image file.
+
+Options:
+
+  -o, --output FILENAME  File name to save the output. For images, if the file
+                         extension is different than IMAGE, a conversion is
+                         made. When not given, standard output is used and
+                         images are serialized using Base64; and to JSON
+                         otherwise.
+  
+
+
+.. commands_end
 
 Credits
 ---------
