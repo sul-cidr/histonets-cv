@@ -9,15 +9,18 @@ Tests for `histonets` module.
 """
 import io
 import os
+import locale
+import subprocess
 import tempfile
 import unittest
 
 import cv2
 import numpy as np
+import click
 from click.testing import CliRunner
 
 import histonets
-from histonets import cli
+from histonets import cli, utils
 
 
 class TestHistonets(unittest.TestCase):
@@ -210,6 +213,7 @@ class TestHistonetsCli(unittest.TestCase):
         with io.open(self.image_b64) as image_b64:
             assert result.output == image_b64.read()
 
+<<<<<<< HEAD
     def test_contrast_invalid_value(self):
         result = self.runner.invoke(cli.contrast, ['150', self.image_file])
         assert 'Invalid value for "value"' in result.output
@@ -221,3 +225,41 @@ class TestHistonetsCli(unittest.TestCase):
     def test_smooth_invalid_value(self):
         result = self.runner.invoke(cli.smooth, ['101', self.image_file])
         assert 'Invalid value for "value"' in result.output
+=======
+
+class TestHistonetsUtils(unittest.TestCase):
+    def setUp(self):
+        self.image_png = os.path.join('tests', 'test.png')
+        self.image_file = 'file://' + self.image_png
+        self.image_5050_b64 = os.path.join('tests', 'test_5050.b64')
+        self.image_404 = 'file:///not_found.png'
+
+    def test_get_images(self):
+        images = utils.Image.get_images([self.image_file, self.image_file])
+        for image in images:
+            assert isinstance(image, utils.Image)
+
+    def test_get_images_invalid(self):
+        self.assertRaises(
+            click.BadParameter,
+            utils.Image.get_images,
+            [self.image_file, self.image_404]
+        )
+
+    def test_get_images_stdin(self):
+        cmd = ("base64 {} -w 0"
+               " | histonets brightness 50"
+               " | histonets contrast 50".format(
+                    self.image_png
+                ))
+        ps = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE,
+                              stderr=subprocess.STDOUT)
+        output = ps.communicate()[0].decode()
+        with io.open(self.image_5050_b64) as image_b64:
+            assert output == image_b64.read()
+
+    def test_local_encoding(self):
+        string = 'Ñoño'
+        encoding = locale.getpreferredencoding(False)
+        assert utils.local_encode(string) == string.encode(encoding)
+>>>>>>> Adding tests for the pipeable behaviour
