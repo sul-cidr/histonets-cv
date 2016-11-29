@@ -174,3 +174,15 @@ class TestHistonetsCli(unittest.TestCase):
         assert len(result.output.strip()) > 0
         with io.open(self.image_b64) as image_b64:
             assert result.output == image_b64.read()
+
+    def test_contrast_invalid_value(self):
+        result = self.runner.invoke(cli.contrast, ['150', self.image_file])
+        assert 'Invalid value for "value"' in result.output
+
+    def test_brightness_invalid_value(self):
+        result = self.runner.invoke(cli.brightness, ['150', self.image_file])
+        assert 'Invalid value for "value"' in result.output
+
+    def test_smooth_invalid_value(self):
+        result = self.runner.invoke(cli.smooth, ['101', self.image_file])
+        assert 'Invalid value for "value"' in result.output
