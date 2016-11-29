@@ -7,6 +7,7 @@ import json
 import locale
 import os
 import stat
+import sys
 
 import click
 import cv2
@@ -77,40 +78,65 @@ class FileAdapter(BaseAdapter):
 
 class Image(object):
     """Proxy class to handle image input in the commands"""
-    __slots__ = ('url', 'response', 'image', 'format')
+    __slots__ = ('image', 'format')
 
-    def __init__(self, url, response):
-        self.url = url
-        self.response = response
+    def __init__(self, content):
         self.image = None
         self.format = None
-        if response.status_code == requests.codes.ok:
-            image_format = imghdr.what(file='', h=response.content)
+        if content:
+            image_format = imghdr.what(file='', h=content)
             if image_format is not None:
-                image_array = np.fromstring(response.content, np.uint8)
+                image_array = np.fromstring(content, np.uint8)
                 self.image = cv2.imdecode(image_array, cv2.IMREAD_COLOR)
                 self.format = image_format
         if self.image is None:
             raise click.BadParameter('Image format not supported')
 
+    @classmethod
+    def get_images(cls, values):
+        """Helper to process local, remote, and base64 piped images as input,
+        and return Image objects"""
+        images = []
+        if not all(values):
+            for value in sys.stdin.readlines():
+                content = base64.b64decode(local_encode(value))
+                images.append(cls(content))
+        else:
+            session = requests.Session()
+            session.mount('file://', FileAdapter())
+            for value in values:
+                try:
+                    response = session.get(value)
+                    if response.status_code == requests.codes.ok:
+                        content = response.content
+                    else:
+                        content = None
+                except Exception as e:
+                    raise click.BadParameter(e)
+                images.append(cls(content))
+            session.close()
+        return images
+
+
+def local_encode(value):
+    encoding = locale.getpreferredencoding(False)
+    try:
+        return value.encode(encoding)
+    except LookupError:
+        return value.encode('utf8', errors='replace')
+
 
 def io_handler(f, *args, **kwargs):
     """Decorator to handle the 'image' argument and the 'output' option"""
 
-    def get_image(ctx, param, value):
-        """Helper that adds a file:// adapter and returns an Image object"""
-        session = requests.Session()
-        session.mount('file://', FileAdapter())
-        if value is not None:
-            try:
-                response = session.get(value)
-                return Image(value, response)
-            except Exception as e:
-                raise click.BadParameter(e)
-            finally:
-                session.close()
+    def _get_image(ctx, param, value):
+        """Helper to process only the first input image"""
+        try:
+            return Image.get_images([value])[0]  # return only first Image
+        except Exception as e:
+            raise click.BadParameter(e)
 
-    @click.argument('image', callback=get_image)
+    @click.argument('image', required=False, callback=_get_image)
     @click.option('--output', '-o', type=click.File('wb'),
                   help='File name to save the output. For images, if '
                        'the file extension is different than IMAGE, '
@@ -133,11 +159,7 @@ def io_handler(f, *args, **kwargs):
             except cv2.error:
                 raise click.BadParameter('Image format output not supported')
         else:
-            encoding = locale.getpreferredencoding(False)
-            try:
-                result = json.dumps(result).encode(encoding)
-            except LookupError:
-                result = json.dumps(result).encode('utf8')
+            result = local_encode(json.dumps(result))
         if output is not None:
             output.write(result)
             output.close()
@@ -151,6 +173,7 @@ def io_handler(f, *args, **kwargs):
     new_line = '' if '\b' in f.__doc__ else '\b\n\n'
     wrapper.__doc__ = (
         """{}{}\n    - IMAGE path to a local (file://) or """
-        """remote (http://, https://) image file.""".format(
+        """remote (http://, https://) image file.\n"""
+        """      A Base64 string can also be piped as input image.""".format(
             f.__doc__, new_line))
     return wrapper
