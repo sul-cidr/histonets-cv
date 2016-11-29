@@ -2,7 +2,7 @@
 import click
 
 from .utils import io_handler
-from .histonets import adjust_contrast, adjust_brightness
+from .histonets import adjust_contrast, adjust_brightness, smooth_image
 
 
 @click.group(invoke_without_command=True)
@@ -64,6 +64,17 @@ def brightness(image, value):
     \b
     - VALUE ranges from -100 to 100."""
     return adjust_brightness(image.image, value)
+
+
+@main.command()
+@click.argument("value", type=click.IntRange(0, 100))
+@io_handler
+def smooth(image, value):
+    """Smooth IMAGE using bilateral filter.
+
+    \b
+    - VALUE ranges from 0 to 100."""
+    return smooth_image(image.image, value)
 
 
 if __name__ == "__main__":

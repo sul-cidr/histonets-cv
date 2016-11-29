@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import cv2
 import numpy as np
 
 
@@ -24,3 +25,11 @@ def adjust_brightness(image, brightness):
     img[img > 255] = 255
     img[img < 0] = 0
     return img.astype(np.ubyte)
+
+
+def smooth_image(image, kernel):
+    if (kernel < 0):
+        kernel = 0
+    elif (kernel > 100):
+        kernel = 100
+    return cv2.bilateralFilter(image, kernel, kernel, kernel)

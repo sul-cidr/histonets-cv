@@ -48,6 +48,12 @@ class TestHistonets(unittest.TestCase):
         test_high_brightness = cv2.imread('tests/test_brightness_lighten.png')
         assert np.array_equal(image_high_brightness, test_high_brightness)
 
+    def test_smooth_image(self):
+        image = self.image
+        smooth_image = histonets.smooth_image(image, 50)
+        test_smooth_image = cv2.imread('tests/smooth50.png')
+        assert np.array_equal(smooth_image, test_smooth_image)
+
 
 class TestHistonetsCli(unittest.TestCase):
     def setUp(self):
