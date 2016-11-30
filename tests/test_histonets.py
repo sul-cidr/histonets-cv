@@ -36,6 +36,17 @@ class TestHistonets(unittest.TestCase):
         test_low_contrast = cv2.imread('tests/test_low_contrast.png')
         assert np.array_equal(image_low_contrast, test_low_contrast)
 
+    def test_contrast_value_parsing(self):
+        image = self.image
+        assert np.array_equal(
+            histonets.adjust_contrast(image, -150),
+            histonets.adjust_contrast(image, -100)
+        )
+        assert np.array_equal(
+            histonets.adjust_contrast(image, 150),
+            histonets.adjust_contrast(image, 100)
+        )
+
     def test_lower_brightness(self):
         image = self.image
         image_low_brightness = histonets.adjust_brightness(image, -50)
@@ -48,11 +59,35 @@ class TestHistonets(unittest.TestCase):
         test_high_brightness = cv2.imread('tests/test_brightness_lighten.png')
         assert np.array_equal(image_high_brightness, test_high_brightness)
 
+    def test_brightness_value_parsing(self):
+        image = self.image
+        assert np.array_equal(
+            histonets.adjust_brightness(image, -150),
+            histonets.adjust_brightness(image, -100)
+        )
+        assert np.array_equal(
+            histonets.adjust_brightness(image, 150),
+            histonets.adjust_brightness(image, 100)
+        )
+
     def test_smooth_image(self):
         image = self.image
         smooth_image = histonets.smooth_image(image, 50)
         test_smooth_image = cv2.imread('tests/smooth50.png')
         assert np.array_equal(smooth_image, test_smooth_image)
+
+    def test_smooth_image_value_parsing(self):
+        image = self.image
+        test_smooth100_image = cv2.imread('tests/smooth100.png')
+        test_smooth0_image = cv2.imread('tests/smooth0.png')
+        assert np.array_equal(
+            histonets.smooth_image(image, 150),
+            test_smooth100_image
+            )
+        assert np.array_equal(
+            histonets.smooth_image(image, -50),
+            test_smooth0_image
+            )
 
 
 class TestHistonetsCli(unittest.TestCase):
