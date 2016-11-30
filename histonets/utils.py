@@ -17,6 +17,11 @@ from requests.adapters import BaseAdapter
 from requests.compat import urlparse, unquote
 
 
+# Constants
+RAW = 'raw'
+IMAGE = 'image'
+
+
 class FileAdapter(BaseAdapter):
     def send(self, request, **kwargs):
         """ Adapted from https://github.com/dashea/requests-file:
@@ -80,10 +85,15 @@ class Image(object):
     """Proxy class to handle image input in the commands"""
     __slots__ = ('image', 'format')
 
-    def __init__(self, content):
+    def __init__(self, content=None, image=None):
         self.image = None
         self.format = None
-        if content:
+        if isinstance(image, Image):
+            self.image = image.image
+            self.format = image.format
+        elif image is not None:
+            self.image = image
+        elif content:
             image_format = imghdr.what(file='', h=content)
             if image_format is not None:
                 image_array = np.fromstring(content, np.uint8)
@@ -105,25 +115,42 @@ class Image(object):
             session = requests.Session()
             session.mount('file://', FileAdapter())
             for value in values:
-                try:
-                    response = session.get(value)
-                    if response.status_code == requests.codes.ok:
-                        content = response.content
-                    else:
-                        content = None
-                except Exception as e:
-                    raise click.BadParameter(e)
-                images.append(cls(content))
+                if isinstance(value, cls):
+                    image = value
+                elif isinstance(value, np.ndarray):
+                    image = cls(image=value)
+                else:
+                    try:
+                        response = session.get(value)
+                        if response.status_code == requests.codes.ok:
+                            content = response.content
+                        else:
+                            content = None
+                    except Exception as e:
+                        raise click.BadParameter(e)
+                    image = cls(content)
+                images.append(image)
             session.close()
         return images
 
 
-def local_encode(value):
-    encoding = locale.getpreferredencoding(False)
-    try:
-        return value.encode(encoding)
-    except LookupError:
-        return value.encode('utf8', errors='replace')
+def image_as_array(f):
+    """Decorator to handle image as Image and as numpy array"""
+
+    def wrapper(*args, **kwargs):
+        image = kwargs.get('image', None) or (args and args[0])
+        if isinstance(image, Image):
+            if 'image' in kwargs:
+                kwargs['image'] = image.image
+            else:
+                args = list(args)
+                args[0] = image.image
+                args = tuple(args)
+        return f(*args, **kwargs)
+
+    wrapper.__name__ = f.__name__
+    wrapper.__doc__ = f.__doc__
+    return wrapper
 
 
 def io_handler(f, *args, **kwargs):
@@ -144,10 +171,12 @@ def io_handler(f, *args, **kwargs):
                        'output is used and images are serialized using '
                        'Base64; and to JSON otherwise.')
     def wrapper(*args, **kwargs):
-        image = kwargs.get('image') or args[0]
-        output = kwargs.pop('output')
+        image = kwargs.get('image')
+        output = kwargs.pop('output', None)
         ctx = click.get_current_context()
         result = ctx.invoke(f, *args, **kwargs)
+        if output == RAW:
+            return result
         result_is_image = isinstance(result, np.ndarray)
         if result_is_image:
             if output and '.' in output.name:
@@ -177,3 +206,28 @@ def io_handler(f, *args, **kwargs):
         """      A Base64 string can also be piped as input image.""".format(
             f.__doc__, new_line))
     return wrapper
+
+
+def local_encode(value):
+    """Encode a string to bytes by using the sysmte preferred encoding.
+    Defaults to utf8 otherwise."""
+    encoding = locale.getpreferredencoding(False)
+    try:
+        return value.encode(encoding)
+    except LookupError:
+        return value.encode('utf8', errors='replace')
+
+
+def parse_json(ctx, param, value):
+    """Parse the actions JSON used mainly in the pipeline command"""
+    try:
+        obj = json.loads(value)
+    except Exception:
+        raise click.BadParameter('Malformed JSON')
+    if (not isinstance(obj, (tuple, list))
+            or not all(map(lambda x: isinstance(x, dict), obj))):
+        raise click.BadParameter('Malformed JSON')
+    for action in obj:
+        if 'action' not in action:
+            raise click.BadParameter('Missing key for action')
+    return obj

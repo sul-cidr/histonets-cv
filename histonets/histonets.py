@@ -2,7 +2,10 @@
 import cv2
 import numpy as np
 
+from .utils import image_as_array
 
+
+@image_as_array
 def adjust_contrast(image, contrast):
     if (contrast < -100):
         contrast = -100
@@ -15,6 +18,7 @@ def adjust_contrast(image, contrast):
     return img.astype(np.ubyte)
 
 
+@image_as_array
 def adjust_brightness(image, brightness):
     if (brightness < -100):
         brightness = -100
