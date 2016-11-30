@@ -78,13 +78,15 @@ class TestHistonets(unittest.TestCase):
 
     def test_smooth_image_value_parsing(self):
         image = self.image
+        test_smooth100_image = cv2.imread('tests/smooth100.png')
+        test_smooth0_image = cv2.imread('tests/smooth0.png')
         assert np.array_equal(
             histonets.smooth_image(image, 150),
-            histonets.smooth_image(image, 100)
+            test_smooth100_image
             )
         assert np.array_equal(
             histonets.smooth_image(image, -50),
-            histonets.smooth_image(image, 0)
+            test_smooth0_image
             )
 
 
