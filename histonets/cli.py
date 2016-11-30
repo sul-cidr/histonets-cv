@@ -105,7 +105,7 @@ def smooth(image, value):
 
     \b
     - VALUE ranges from 0 to 100."""
-    return smooth_image(image.image, value)
+    return smooth_image(image, value)
 
 
 if __name__ == "__main__":

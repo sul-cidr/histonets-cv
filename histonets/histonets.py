@@ -31,6 +31,7 @@ def adjust_brightness(image, brightness):
     return img.astype(np.ubyte)
 
 
+@image_as_array
 def smooth_image(image, kernel):
     if (kernel < 0):
         kernel = 0
