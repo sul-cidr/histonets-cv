@@ -285,7 +285,7 @@ class TestHistonetsUtils(unittest.TestCase):
                 ))
         ps = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE,
                               stderr=subprocess.STDOUT)
-        output = ps.communicate()[0].decode()
+        output = ps.communicate()[0].decode("utf8")
         with io.open(self.image_5050_b64) as image_b64:
             assert output == image_b64.read()
 
