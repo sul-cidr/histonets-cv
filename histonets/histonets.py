@@ -7,11 +7,11 @@ from .utils import image_as_array
 
 @image_as_array
 def adjust_contrast(image, contrast):
-    if (contrast < -100):
-        contrast = -100
-    elif (contrast > 100):
-        contrast = 100
-    contrast = (contrast + 100) / 100
+    if (contrast < 0):
+        contrast = 0
+    elif (contrast > 200):
+        contrast = 200
+    contrast = contrast / 100
     img = image.astype(np.float) * contrast
     img[img > 255] = 255
     img[img < 0] = 0
@@ -20,11 +20,11 @@ def adjust_contrast(image, contrast):
 
 @image_as_array
 def adjust_brightness(image, brightness):
-    if (brightness < -100):
-        brightness = -100
-    elif (brightness > 100):
-        brightness = 100
-    brightness = (((brightness + 100) * 51) / 20) - 255
+    if (brightness < 0):
+        brightness = 0
+    elif (brightness > 200):
+        brightness = 200
+    brightness = (((brightness) * (510)) / 200) - 255
     img = image.astype(np.float) + brightness
     img[img > 255] = 255
     img[img < 0] = 0
