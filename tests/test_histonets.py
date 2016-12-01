@@ -151,18 +151,9 @@ class TestHistonetsCli(unittest.TestCase):
         result = self.runner.invoke(cli.download, ['--help'])
         assert 'Download IMAGE.' in result.output
 
-    def test_io_handler_to_file_as_png(self):
-        result = self.runner.invoke(cli.download,
-            [self.image_file, '--output', self.tmp_png]
-        )
-        assert 'Error' not in result.output
-        assert len(result.output) == 0
-        image_png = cv2.imread(self.image_png)
-        tmp_png = cv2.imread(self.tmp_png)
-        assert np.array_equal(image_png, tmp_png)
-
     def test_io_handler_to_file_as_jpg(self):
-        result = self.runner.invoke(cli.download,
+        result = self.runner.invoke(
+            cli.download,
             [self.image_file, '--output', self.tmp_jpg]
         )
         assert 'Error' not in result.output
@@ -172,7 +163,8 @@ class TestHistonetsCli(unittest.TestCase):
         assert np.array_equal(image_jpg, tmp_jpg)
 
     def test_io_handler_to_file_as_png(self):
-        result = self.runner.invoke(cli.download,
+        result = self.runner.invoke(
+            cli.download,
             [self.image_file, '--output', self.tmp_png]
         )
         assert 'Error' not in result.output
@@ -182,7 +174,8 @@ class TestHistonetsCli(unittest.TestCase):
         assert np.array_equal(image_png, tmp_png)
 
     def test_io_handler_to_file_and_convert_to_tiff(self):
-        result = self.runner.invoke(cli.download,
+        result = self.runner.invoke(
+            cli.download,
             [self.image_file, '--output', self.tmp_tiff]
         )
         assert 'Error' not in result.output
@@ -192,7 +185,8 @@ class TestHistonetsCli(unittest.TestCase):
         assert np.array_equal(image_png, tmp_tiff)
 
     def test_io_handler_to_file_with_no_format(self):
-        result = self.runner.invoke(cli.download,
+        result = self.runner.invoke(
+            cli.download,
             [self.image_file, '--output', self.tmp_no_format]
         )
         assert 'Error' not in result.output
@@ -202,7 +196,8 @@ class TestHistonetsCli(unittest.TestCase):
         assert np.array_equal(image_png, tmp_no_format)
 
     def test_io_handler_to_file_with_invalid_format(self):
-        result = self.runner.invoke(cli.download,
+        result = self.runner.invoke(
+            cli.download,
             [self.image_file, '--output', self.tmp_invalid_format]
         )
         assert 'Error' in result.output
@@ -316,7 +311,6 @@ class TestHistonetsUtils(unittest.TestCase):
 
     def test_image_as_array(self):
         image = utils.Image.get_images([self.image_file])[0]
-        func = lambda x: x
-        func = utils.image_as_array(func)
+        func = utils.image_as_array(lambda x: x)
         assert np.array_equal(image.image, func(image))
         assert np.array_equal(image.image, func(image.image))
