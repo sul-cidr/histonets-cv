@@ -229,8 +229,8 @@ class TestHistonetsCli(unittest.TestCase):
 
     def test_command_pipeline(self):
         actions = json.dumps([
-            {'action': 'brightness', 'options': {'value': 50}},
-            {'action': 'contrast', 'options': {'value': 50}}
+            {'action': 'brightness', 'options': {'value': 150}},
+            {'action': 'contrast', 'options': {'value': 150}}
         ])
         result = self.runner.invoke(cli.pipeline, [actions, self.image_file])
         assert 'Error' not in result.output
@@ -279,8 +279,8 @@ class TestHistonetsUtils(unittest.TestCase):
 
     def test_get_images_stdin(self):
         cmd = ("base64 {} -w 0"
-               " | histonets brightness 50"
-               " | histonets contrast 50".format(
+               " | histonets brightness 150"
+               " | histonets contrast 150".format(
                     self.image_png
                 ))
         ps = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE,
@@ -295,11 +295,11 @@ class TestHistonetsUtils(unittest.TestCase):
         assert utils.local_encode(string) == string.encode(encoding)
 
     def test_parse_json(self):
-        string = ('[{"action": "brightness", "options": {"value": 50}},'
-                  ' {"action": "contrast", "options": {"value": 50}}]')
+        string = ('[{"action": "brightness", "options": {"value": 150}},'
+                  ' {"action": "contrast", "options": {"value": 150}}]')
         obj = [
-            {'action': 'brightness', 'options': {'value': 50}},
-            {'action': 'contrast', 'options': {'value': 50}}
+            {'action': 'brightness', 'options': {'value': 150}},
+            {'action': 'contrast', 'options': {'value': 150}}
         ]
         assert utils.parse_json(None, None, string) == obj
 
