@@ -76,24 +76,24 @@ def download(image):
 
 
 @main.command()
-@click.argument("value", type=click.IntRange(-100, 100))
+@click.argument("value", type=click.IntRange(0, 200))
 @io_handler
 def contrast(image, value):
     """Adjust contrast of IMAGE.
 
     \b
-    - VALUE ranges from -100 to 100."""
+    - VALUE ranges from 0 to 200."""
     return adjust_contrast(image, value)
 
 
 @main.command()
-@click.argument("value", type=click.IntRange(-100, 100))
+@click.argument("value", type=click.IntRange(0, 200))
 @io_handler
 def brightness(image, value):
     """Adjust brightness of IMAGE.
 
     \b
-    - VALUE ranges from -100 to 100."""
+    - VALUE ranges from 0 to 200."""
     return adjust_brightness(image, value)
 
 

@@ -30,48 +30,48 @@ class TestHistonets(unittest.TestCase):
 
     def test_adjust_high_contrast(self):
         image = self.image
-        image_high_contrast = histonets.adjust_contrast(image, 50)
+        image_high_contrast = histonets.adjust_contrast(image, 150)
         test_high_contrast = cv2.imread('tests/test_high_contrast.png')
         assert np.array_equal(image_high_contrast, test_high_contrast)
 
     def test_adjust_low_contrast(self):
         image = self.image
-        image_low_contrast = histonets.adjust_contrast(image, -50)
+        image_low_contrast = histonets.adjust_contrast(image, 50)
         test_low_contrast = cv2.imread('tests/test_low_contrast.png')
         assert np.array_equal(image_low_contrast, test_low_contrast)
 
     def test_contrast_value_parsing(self):
         image = self.image
         assert np.array_equal(
-            histonets.adjust_contrast(image, -150),
-            histonets.adjust_contrast(image, -100)
+            histonets.adjust_contrast(image, -10),
+            histonets.adjust_contrast(image, 0)
         )
         assert np.array_equal(
-            histonets.adjust_contrast(image, 150),
-            histonets.adjust_contrast(image, 100)
+            histonets.adjust_contrast(image, 210),
+            histonets.adjust_contrast(image, 200)
         )
 
     def test_lower_brightness(self):
         image = self.image
-        image_low_brightness = histonets.adjust_brightness(image, -50)
+        image_low_brightness = histonets.adjust_brightness(image, 50)
         test_low_brightness = cv2.imread('tests/test_brightness_darken.png')
         assert np.array_equal(image_low_brightness, test_low_brightness)
 
     def test_higher_brightness(self):
         image = self.image
-        image_high_brightness = histonets.adjust_brightness(image, 50)
+        image_high_brightness = histonets.adjust_brightness(image, 150)
         test_high_brightness = cv2.imread('tests/test_brightness_lighten.png')
         assert np.array_equal(image_high_brightness, test_high_brightness)
 
     def test_brightness_value_parsing(self):
         image = self.image
         assert np.array_equal(
-            histonets.adjust_brightness(image, -150),
-            histonets.adjust_brightness(image, -100)
+            histonets.adjust_brightness(image, -10),
+            histonets.adjust_brightness(image, 0)
         )
         assert np.array_equal(
-            histonets.adjust_brightness(image, 150),
-            histonets.adjust_brightness(image, 100)
+            histonets.adjust_brightness(image, 210),
+            histonets.adjust_brightness(image, 200)
         )
 
     def test_smooth_image(self):
@@ -216,11 +216,11 @@ class TestHistonetsCli(unittest.TestCase):
             assert result.output == image_b64.read()
 
     def test_contrast_invalid_value(self):
-        result = self.runner.invoke(cli.contrast, ['150', self.image_file])
+        result = self.runner.invoke(cli.contrast, ['250', self.image_file])
         assert 'Invalid value for "value"' in result.output
 
     def test_brightness_invalid_value(self):
-        result = self.runner.invoke(cli.brightness, ['150', self.image_file])
+        result = self.runner.invoke(cli.brightness, ['250', self.image_file])
         assert 'Invalid value for "value"' in result.output
 
     def test_smooth_invalid_value(self):
@@ -229,8 +229,8 @@ class TestHistonetsCli(unittest.TestCase):
 
     def test_command_pipeline(self):
         actions = json.dumps([
-            {'action': 'brightness', 'options': {'value': 50}},
-            {'action': 'contrast', 'options': {'value': 50}}
+            {'action': 'brightness', 'options': {'value': 150}},
+            {'action': 'contrast', 'options': {'value': 150}}
         ])
         result = self.runner.invoke(cli.pipeline, [actions, self.image_file])
         assert 'Error' not in result.output
@@ -279,8 +279,8 @@ class TestHistonetsUtils(unittest.TestCase):
 
     def test_get_images_stdin(self):
         cmd = ("base64 {} -w 0"
-               " | histonets brightness 50"
-               " | histonets contrast 50".format(
+               " | histonets brightness 150"
+               " | histonets contrast 150".format(
                     self.image_png
                 ))
         ps = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE,
@@ -295,11 +295,11 @@ class TestHistonetsUtils(unittest.TestCase):
         assert utils.local_encode(string) == string.encode(encoding)
 
     def test_parse_json(self):
-        string = ('[{"action": "brightness", "options": {"value": 50}},'
-                  ' {"action": "contrast", "options": {"value": 50}}]')
+        string = ('[{"action": "brightness", "options": {"value": 150}},'
+                  ' {"action": "contrast", "options": {"value": 150}}]')
         obj = [
-            {'action': 'brightness', 'options': {'value': 50}},
-            {'action': 'contrast', 'options': {'value': 50}}
+            {'action': 'brightness', 'options': {'value': 150}},
+            {'action': 'contrast', 'options': {'value': 150}}
         ]
         assert utils.parse_json(None, None, string) == obj
 
