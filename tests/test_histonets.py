@@ -278,7 +278,7 @@ class TestHistonetsUtils(unittest.TestCase):
         )
 
     def test_get_images_stdin(self):
-        cmd = ("base64 {} -w 0"
+        cmd = ("python tests/encode_image.py -i {}"
                " | histonets brightness 150"
                " | histonets contrast 150".format(
                     self.image_png
