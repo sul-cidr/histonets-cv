@@ -48,12 +48,13 @@ Commands
 
 brightness
 ~~~~~~~~~~
-Usage: histonets [OPTIONS] VALUE IMAGE
+Usage: histonets [OPTIONS] VALUE [IMAGE]
 
 Adjust brightness of IMAGE.
 
 - VALUE ranges from -100 to 100.
 - IMAGE path to a local (file://) or remote (http://, https://) image file.
+  A Base64 string can also be piped as input image.
 
 Options:
 
@@ -66,12 +67,13 @@ Options:
 
 contrast
 ~~~~~~~~
-Usage: histonets [OPTIONS] VALUE IMAGE
+Usage: histonets [OPTIONS] VALUE [IMAGE]
 
 Adjust contrast of IMAGE.
 
 - VALUE ranges from -100 to 100.
 - IMAGE path to a local (file://) or remote (http://, https://) image file.
+  A Base64 string can also be piped as input image.
 
 Options:
 
@@ -84,11 +86,40 @@ Options:
 
 download
 ~~~~~~~~
-Usage: histonets [OPTIONS] IMAGE
+Usage: histonets [OPTIONS] [IMAGE]
 
 Download IMAGE.
 
 - IMAGE path to a local (file://) or remote (http://, https://) image file.
+  A Base64 string can also be piped as input image.
+
+Options:
+
+  -o, --output FILENAME  File name to save the output. For images, if the file
+                         extension is different than IMAGE, a conversion is
+                         made. When not given, standard output is used and
+                         images are serialized using Base64; and to JSON
+                         otherwise.
+  
+
+pipeline
+~~~~~~~~
+Usage: histonets [OPTIONS] ACTIONS [IMAGE]
+
+Allow chaining a series of actions to be applied to IMAGE.
+Output will depend on the last action applied.
+
+- ACTIONS is a JSON list of dictionaries containing each an 'action' key
+  specifying the action to apply, a 'arguments' key which is a
+  list of arguments, and a 'options' key with a dictionary to set the
+  options for the corresponding action.
+
+  Example::
+
+    histonets pipeline '[{"action": "contrast", "options": {"value": 50}}]'
+
+- IMAGE path to a local (file://) or remote (http://, https://) image file.
+  A Base64 string can also be piped as input image.
 
 Options:
 

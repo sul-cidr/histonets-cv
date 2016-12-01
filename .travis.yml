@@ -27,6 +27,7 @@ env:
 install: pip install -U tox "codecov>=1.4.0"
 language: python
 python: 3.5
+before_script: pip install --editable .
 script: tox -e ${TOXENV}
 after_success:
   - codecov -e ${TOXENV}

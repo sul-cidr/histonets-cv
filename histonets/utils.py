@@ -7,6 +7,7 @@ import json
 import locale
 import os
 import stat
+import sys
 
 import click
 import cv2
@@ -14,6 +15,11 @@ import numpy as np
 import requests
 from requests.adapters import BaseAdapter
 from requests.compat import urlparse, unquote
+
+
+# Constants
+RAW = 'raw'
+IMAGE = 'image'
 
 
 class FileAdapter(BaseAdapter):
@@ -77,40 +83,87 @@ class FileAdapter(BaseAdapter):
 
 class Image(object):
     """Proxy class to handle image input in the commands"""
-    __slots__ = ('url', 'response', 'image', 'format')
+    __slots__ = ('image', 'format')
 
-    def __init__(self, url, response):
-        self.url = url
-        self.response = response
+    def __init__(self, content=None, image=None):
         self.image = None
         self.format = None
-        if response.status_code == requests.codes.ok:
-            image_format = imghdr.what(file='', h=response.content)
+        if isinstance(image, Image):
+            self.image = image.image
+            self.format = image.format
+        elif image is not None:
+            self.image = image
+        elif content:
+            image_format = imghdr.what(file='', h=content)
             if image_format is not None:
-                image_array = np.fromstring(response.content, np.uint8)
+                image_array = np.fromstring(content, np.uint8)
                 self.image = cv2.imdecode(image_array, cv2.IMREAD_COLOR)
                 self.format = image_format
         if self.image is None:
             raise click.BadParameter('Image format not supported')
 
+    @classmethod
+    def get_images(cls, values):
+        """Helper to process local, remote, and base64 piped images as input,
+        and return Image objects"""
+        images = []
+        if not all(values):
+            for value in sys.stdin.readlines():
+                content = base64.b64decode(local_encode(value))
+                images.append(cls(content))
+        else:
+            session = requests.Session()
+            session.mount('file://', FileAdapter())
+            for value in values:
+                if isinstance(value, cls):
+                    image = value
+                elif isinstance(value, np.ndarray):
+                    image = cls(image=value)
+                else:
+                    try:
+                        response = session.get(value)
+                        if response.status_code == requests.codes.ok:
+                            content = response.content
+                        else:
+                            content = None
+                    except Exception as e:
+                        raise click.BadParameter(e)
+                    image = cls(content)
+                images.append(image)
+            session.close()
+        return images
+
+
+def image_as_array(f):
+    """Decorator to handle image as Image and as numpy array"""
+
+    def wrapper(*args, **kwargs):
+        image = kwargs.get('image', None) or (args and args[0])
+        if isinstance(image, Image):
+            if 'image' in kwargs:
+                kwargs['image'] = image.image
+            else:
+                args = list(args)
+                args[0] = image.image
+                args = tuple(args)
+        return f(*args, **kwargs)
+
+    wrapper.__name__ = f.__name__
+    wrapper.__doc__ = f.__doc__
+    return wrapper
+
 
 def io_handler(f, *args, **kwargs):
     """Decorator to handle the 'image' argument and the 'output' option"""
 
-    def get_image(ctx, param, value):
-        """Helper that adds a file:// adapter and returns an Image object"""
-        session = requests.Session()
-        session.mount('file://', FileAdapter())
-        if value is not None:
-            try:
-                response = session.get(value)
-                return Image(value, response)
-            except Exception as e:
-                raise click.BadParameter(e)
-            finally:
-                session.close()
+    def _get_image(ctx, param, value):
+        """Helper to process only the first input image"""
+        try:
+            return Image.get_images([value])[0]  # return only first Image
+        except Exception as e:
+            raise click.BadParameter(e)
 
-    @click.argument('image', callback=get_image)
+    @click.argument('image', required=False, callback=_get_image)
     @click.option('--output', '-o', type=click.File('wb'),
                   help='File name to save the output. For images, if '
                        'the file extension is different than IMAGE, '
@@ -118,10 +171,12 @@ def io_handler(f, *args, **kwargs):
                        'output is used and images are serialized using '
                        'Base64; and to JSON otherwise.')
     def wrapper(*args, **kwargs):
-        image = kwargs.get('image') or args[0]
-        output = kwargs.pop('output')
+        image = kwargs.get('image')
+        output = kwargs.pop('output', None)
         ctx = click.get_current_context()
         result = ctx.invoke(f, *args, **kwargs)
+        if output == RAW:
+            return result
         result_is_image = isinstance(result, np.ndarray)
         if result_is_image:
             if output and '.' in output.name:
@@ -133,11 +188,7 @@ def io_handler(f, *args, **kwargs):
             except cv2.error:
                 raise click.BadParameter('Image format output not supported')
         else:
-            encoding = locale.getpreferredencoding(False)
-            try:
-                result = json.dumps(result).encode(encoding)
-            except LookupError:
-                result = json.dumps(result).encode('utf8')
+            result = local_encode(json.dumps(result))
         if output is not None:
             output.write(result)
             output.close()
@@ -151,6 +202,32 @@ def io_handler(f, *args, **kwargs):
     new_line = '' if '\b' in f.__doc__ else '\b\n\n'
     wrapper.__doc__ = (
         """{}{}\n    - IMAGE path to a local (file://) or """
-        """remote (http://, https://) image file.""".format(
+        """remote (http://, https://) image file.\n"""
+        """      A Base64 string can also be piped as input image.""".format(
             f.__doc__, new_line))
     return wrapper
+
+
+def local_encode(value):
+    """Encode a string to bytes by using the sysmte preferred encoding.
+    Defaults to utf8 otherwise."""
+    encoding = locale.getpreferredencoding(False)
+    try:
+        return value.encode(encoding)
+    except LookupError:
+        return value.encode('utf8', errors='replace')
+
+
+def parse_json(ctx, param, value):
+    """Parse the actions JSON used mainly in the pipeline command"""
+    try:
+        obj = json.loads(value)
+    except Exception:
+        raise click.BadParameter('Malformed JSON')
+    if (not isinstance(obj, (tuple, list))
+            or not all(map(lambda x: isinstance(x, dict), obj))):
+        raise click.BadParameter('Malformed JSON')
+    for action in obj:
+        if 'action' not in action:
+            raise click.BadParameter('Missing key for action')
+    return obj

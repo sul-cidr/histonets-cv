@@ -8,16 +8,20 @@ test_histonets
 Tests for `histonets` module.
 """
 import io
+import json
 import os
+import locale
+import subprocess
 import tempfile
 import unittest
 
 import cv2
 import numpy as np
+import click
 from click.testing import CliRunner
 
 import histonets
-from histonets import cli
+from histonets import cli, utils
 
 
 class TestHistonets(unittest.TestCase):
@@ -98,6 +102,7 @@ class TestHistonetsCli(unittest.TestCase):
         self.image_jpg = os.path.join('tests', 'test.jpg')
         self.image_png = os.path.join('tests', 'test.png')
         self.image_b64 = os.path.join('tests', 'test.b64')
+        self.image_5050_b64 = os.path.join('tests', 'test_5050.b64')
         self.tmp_jpg = os.path.join(tempfile.gettempdir(), 'test.jpg')
         self.tmp_png = os.path.join(tempfile.gettempdir(), 'test.png')
         self.tmp_tiff = os.path.join(tempfile.gettempdir(), 'test.tiff')
@@ -221,3 +226,97 @@ class TestHistonetsCli(unittest.TestCase):
     def test_smooth_invalid_value(self):
         result = self.runner.invoke(cli.smooth, ['101', self.image_file])
         assert 'Invalid value for "value"' in result.output
+
+    def test_command_pipeline(self):
+        actions = json.dumps([
+            {'action': 'brightness', 'options': {'value': 50}},
+            {'action': 'contrast', 'options': {'value': 50}}
+        ])
+        result = self.runner.invoke(cli.pipeline, [actions, self.image_file])
+        assert 'Error' not in result.output
+        assert len(result.output.strip()) > 0
+        with io.open(self.image_5050_b64) as image_b64:
+            assert result.output == image_b64.read()
+
+    def test_command_pipeline_invalid(self):
+        actions = json.dumps([
+            {'action': 'command not found', 'options': {'value': 50}},
+        ])
+        result = self.runner.invoke(cli.pipeline, [actions, self.image_file])
+        assert 'Error' in result.output
+        assert len(result.output.strip()) > 0
+
+
+class TestHistonetsUtils(unittest.TestCase):
+    def setUp(self):
+        self.image_png = os.path.join('tests', 'test.png')
+        self.image_file = 'file://' + self.image_png
+        self.image_5050_b64 = os.path.join('tests', 'test_5050.b64')
+        self.image_404 = 'file:///not_found.png'
+
+    def test_get_images(self):
+        images = utils.Image.get_images([self.image_file, self.image_file])
+        for image in images:
+            assert isinstance(image, utils.Image)
+
+    def test_get_images_class(self):
+        images = utils.Image.get_images([self.image_file, self.image_file])
+        assert images == utils.Image.get_images(images)
+
+    def test_images_class(self):
+        image = utils.Image.get_images([self.image_file])[0]
+        assert np.array_equal(image.image, utils.Image(image=image).image)
+        assert np.array_equal(image.format, utils.Image(image=image).format)
+        assert np.array_equal(image.image,
+                              utils.Image(image=image.image).image)
+
+    def test_get_images_invalid(self):
+        self.assertRaises(
+            click.BadParameter,
+            utils.Image.get_images,
+            [self.image_file, self.image_404]
+        )
+
+    def test_get_images_stdin(self):
+        cmd = ("base64 {} -w 0"
+               " | histonets brightness 50"
+               " | histonets contrast 50".format(
+                    self.image_png
+                ))
+        ps = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE,
+                              stderr=subprocess.STDOUT)
+        output = ps.communicate()[0].decode()
+        with io.open(self.image_5050_b64) as image_b64:
+            assert output == image_b64.read()
+
+    def test_local_encoding(self):
+        string = 'Ñoño'
+        encoding = locale.getpreferredencoding(False)
+        assert utils.local_encode(string) == string.encode(encoding)
+
+    def test_parse_json(self):
+        string = ('[{"action": "brightness", "options": {"value": 50}},'
+                  ' {"action": "contrast", "options": {"value": 50}}]')
+        obj = [
+            {'action': 'brightness', 'options': {'value': 50}},
+            {'action': 'contrast', 'options': {'value': 50}}
+        ]
+        assert utils.parse_json(None, None, string) == obj
+
+    def test_parse_json_invalid(self):
+        string = ('[{"action": "brightness", "options": {"value": 50}},'
+                  ' {"actions": "contrast", "options": {"value": 50}}]')
+        self.assertRaises(click.BadParameter, utils.parse_json,
+                          None, None, string)
+
+    def test_parse_json_bad_format(self):
+        string = ('[*{"action": "brightness", "options": {"value": 50}-}')
+        self.assertRaises(click.BadParameter, utils.parse_json,
+                          None, None, string)
+
+    def test_image_as_array(self):
+        image = utils.Image.get_images([self.image_file])[0]
+        func = lambda x: x
+        func = utils.image_as_array(func)
+        assert np.array_equal(image.image, func(image))
+        assert np.array_equal(image.image, func(image.image))
