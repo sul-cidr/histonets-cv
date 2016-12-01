@@ -279,8 +279,8 @@ class TestHistonetsUtils(unittest.TestCase):
 
     def test_get_images_stdin(self):
         cmd = ("python tests/encode_image.py -i {}"
-               " | histonets brightness 50"
-               " | histonets contrast 50".format(
+               " | histonets brightness 150"
+               " | histonets contrast 150".format(
                     self.image_png
                 ))
         ps = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE,
