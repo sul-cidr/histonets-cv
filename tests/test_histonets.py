@@ -93,6 +93,27 @@ class TestHistonets(unittest.TestCase):
             test_smooth0_image
             )
 
+    def test_histogram_equalization(self):
+        image = self.image
+        test_hist_eq = cv2.imread('tests/test_hist_eq5.png')
+        assert np.array_equal(
+            histonets.histogram_equalization(image, 5),
+            test_hist_eq
+        )
+
+    def test_histogram_equalization_value_parsing(self):
+        image = self.image
+        test_hist_eq0 = cv2.imread('tests/test_hist_eq0.png')
+        test_hist_eq8 = cv2.imread('tests/test_hist_eq8.png')
+        assert np.array_equal(
+            histonets.histogram_equalization(image, -1),
+            test_hist_eq0
+        )
+        assert np.array_equal(
+            histonets.histogram_equalization(image, 9),
+            test_hist_eq8
+        )
+
 
 class TestHistonetsCli(unittest.TestCase):
     def setUp(self):
@@ -220,6 +241,10 @@ class TestHistonetsCli(unittest.TestCase):
 
     def test_smooth_invalid_value(self):
         result = self.runner.invoke(cli.smooth, ['101', self.image_file])
+        assert 'Invalid value for "value"' in result.output
+
+    def test_histogram_equalization_invalid_value(self):
+        result = self.runner.invoke(cli.hist_eq, ['15', self.image_file])
         assert 'Invalid value for "value"' in result.output
 
     def test_command_pipeline(self):
