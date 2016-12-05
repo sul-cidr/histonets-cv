@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import cv2
 import numpy as np
+from skimage import exposure
 
 from .utils import image_as_array
 
@@ -38,3 +39,18 @@ def smooth_image(image, kernel):
     elif (kernel > 100):
         kernel = 100
     return cv2.bilateralFilter(image, kernel, kernel, kernel)
+
+
+@image_as_array
+def histogram_equalization(image, tile):
+    if (tile < 0):
+        tile = 0
+    elif (tile > 100):
+        tile = 100
+    tile = int(tile / 10)
+    img_yuv = cv2.cvtColor(image, cv2.COLOR_BGR2YCrCb)
+    clahe = cv2.createCLAHE(clipLimit=1.0, tileGridSize=(2 ** tile, 2 ** tile))
+    img_yuv[:, :, 0] = clahe.apply(img_yuv[:, :, 0])
+    img_out = cv2.cvtColor(img_yuv, cv2.COLOR_YCrCb2BGR)
+    img = exposure.rescale_intensity(img_out)
+    return img

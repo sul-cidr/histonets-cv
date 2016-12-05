@@ -2,7 +2,12 @@
 import click
 
 from .utils import io_handler, parse_json, RAW
-from .histonets import adjust_contrast, adjust_brightness, smooth_image
+from .histonets import (
+    adjust_brightness,
+    adjust_contrast,
+    histogram_equalization,
+    smooth_image
+    )
 
 
 @click.group(invoke_without_command=True)
@@ -106,6 +111,17 @@ def smooth(image, value):
     \b
     - VALUE ranges from 0 to 100."""
     return smooth_image(image, value)
+
+
+@main.command()
+@click.argument("value", type=click.IntRange(0, 100))
+@io_handler
+def hist_eq(image, value):
+    """Histogram equalization on IMAGE.
+
+    \b
+    - VALUE ranges from 0 to 100."""
+    return histogram_equalization(image, value)
 
 
 if __name__ == "__main__":
