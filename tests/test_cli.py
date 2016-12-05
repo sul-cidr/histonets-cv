@@ -153,7 +153,7 @@ class TestHistonetsCli(unittest.TestCase):
         assert 'Invalid value for "value"' in result.output
 
     def test_histogram_equalization_invalid_value(self):
-        result = self.runner.invoke(cli.hist_eq, ['150', self.image_file])
+        result = self.runner.invoke(cli.equalize, ['150', self.image_file])
         assert 'Invalid value for "value"' in result.output
 
     def test_command_pipeline(self):
