@@ -52,7 +52,7 @@ Usage: histonets [OPTIONS] VALUE [IMAGE]
 
 Adjust brightness of IMAGE.
 
-- VALUE ranges from -100 to 100.
+- VALUE ranges from 0 to 200.
 - IMAGE path to a local (file://) or remote (http://, https://) image file.
   A Base64 string can also be piped as input image.
 
@@ -71,7 +71,7 @@ Usage: histonets [OPTIONS] VALUE [IMAGE]
 
 Adjust contrast of IMAGE.
 
-- VALUE ranges from -100 to 100.
+- VALUE ranges from 0 to 200.
 - IMAGE path to a local (file://) or remote (http://, https://) image file.
   A Base64 string can also be piped as input image.
 
@@ -102,6 +102,25 @@ Options:
                          otherwise.
   
 
+equalize
+~~~~~~~~
+Usage: histonets [OPTIONS] VALUE [IMAGE]
+
+Histogram equalization on IMAGE.
+
+- VALUE ranges from 0 to 100.
+- IMAGE path to a local (file://) or remote (http://, https://) image file.
+  A Base64 string can also be piped as input image.
+
+Options:
+
+  -o, --output FILENAME  File name to save the output. For images, if the file
+                         extension is different than IMAGE, a conversion is
+                         made. When not given, standard output is used and
+                         images are serialized using Base64; and to JSON
+                         otherwise.
+  
+
 pipeline
 ~~~~~~~~
 Usage: histonets [OPTIONS] ACTIONS [IMAGE]
@@ -118,6 +137,25 @@ Output will depend on the last action applied.
 
     histonets pipeline '[{"action": "contrast", "options": {"value": 50}}]'
 
+- IMAGE path to a local (file://) or remote (http://, https://) image file.
+  A Base64 string can also be piped as input image.
+
+Options:
+
+  -o, --output FILENAME  File name to save the output. For images, if the file
+                         extension is different than IMAGE, a conversion is
+                         made. When not given, standard output is used and
+                         images are serialized using Base64; and to JSON
+                         otherwise.
+  
+
+smooth
+~~~~~~
+Usage: histonets [OPTIONS] VALUE [IMAGE]
+
+Smooth IMAGE using bilateral filter.
+
+- VALUE ranges from 0 to 100.
 - IMAGE path to a local (file://) or remote (http://, https://) image file.
   A Base64 string can also be piped as input image.
 
