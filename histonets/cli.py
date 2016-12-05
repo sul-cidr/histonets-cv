@@ -116,7 +116,7 @@ def smooth(image, value):
 @main.command()
 @click.argument("value", type=click.IntRange(0, 100))
 @io_handler
-def hist_eq(image, value):
+def equalize(image, value):
     """Histogram equalization on IMAGE.
 
     \b
