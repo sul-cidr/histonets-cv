@@ -43,11 +43,11 @@ def smooth_image(image, kernel):
 
 @image_as_array
 def histogram_equalization(image, tile):
-    # scale from Javi's code is 0 to 8
     if (tile < 0):
         tile = 0
-    elif (tile > 8):
-        tile = 8
+    elif (tile > 100):
+        tile = 100
+    tile = int(tile / 10)
     img_yuv = cv2.cvtColor(image, cv2.COLOR_BGR2YCrCb)
     clahe = cv2.createCLAHE(clipLimit=1.0, tileGridSize=(2 ** tile, 2 ** tile))
     img_yuv[:, :, 0] = clahe.apply(img_yuv[:, :, 0])

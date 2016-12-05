@@ -114,13 +114,13 @@ def smooth(image, value):
 
 
 @main.command()
-@click.argument("value", type=click.IntRange(0, 8))
+@click.argument("value", type=click.IntRange(0, 100))
 @io_handler
 def hist_eq(image, value):
     """Histogram equalization on IMAGE.
 
     \b
-    - VALUE ranges from 0 to 8."""
+    - VALUE ranges from 0 to 100."""
     return histogram_equalization(image, value)
 
 

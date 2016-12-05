@@ -97,21 +97,21 @@ class TestHistonets(unittest.TestCase):
         image = self.image
         test_hist_eq = cv2.imread('tests/test_hist_eq5.png')
         assert np.array_equal(
-            histonets.histogram_equalization(image, 5),
+            histonets.histogram_equalization(image, 50),
             test_hist_eq
         )
 
     def test_histogram_equalization_value_parsing(self):
         image = self.image
         test_hist_eq0 = cv2.imread('tests/test_hist_eq0.png')
-        test_hist_eq8 = cv2.imread('tests/test_hist_eq8.png')
+        test_hist_eq10 = cv2.imread('tests/test_hist_eq10.png')
         assert np.array_equal(
-            histonets.histogram_equalization(image, -1),
+            histonets.histogram_equalization(image, -10),
             test_hist_eq0
         )
         assert np.array_equal(
-            histonets.histogram_equalization(image, 9),
-            test_hist_eq8
+            histonets.histogram_equalization(image, 140),
+            test_hist_eq10
         )
 
 
@@ -244,7 +244,7 @@ class TestHistonetsCli(unittest.TestCase):
         assert 'Invalid value for "value"' in result.output
 
     def test_histogram_equalization_invalid_value(self):
-        result = self.runner.invoke(cli.hist_eq, ['15', self.image_file])
+        result = self.runner.invoke(cli.hist_eq, ['150', self.image_file])
         assert 'Invalid value for "value"' in result.output
 
     def test_command_pipeline(self):
