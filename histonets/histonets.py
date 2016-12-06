@@ -54,3 +54,12 @@ def histogram_equalization(image, tile):
     img_out = cv2.cvtColor(img_yuv, cv2.COLOR_YCrCb2BGR)
     img = exposure.rescale_intensity(img_out)
     return img
+
+
+@image_as_array
+def denoise_image(image, value):
+    if (value < 0):
+        value = 0
+    elif (value > 100):
+        value = 0
+    return cv2.fastNlMeansDenoisingColored(image, None, value, value)
