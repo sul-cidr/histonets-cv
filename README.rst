@@ -84,6 +84,25 @@ Options:
                          otherwise.
   
 
+denoise
+~~~~~~~
+Usage: histonets [OPTIONS] VALUE [IMAGE]
+
+Denoise IMAGE.
+
+- VALUE ranges from 0 to 100.
+- IMAGE path to a local (file://) or remote (http://, https://) image file.
+  A Base64 string can also be piped as input image.
+
+Options:
+
+  -o, --output FILENAME  File name to save the output. For images, if the file
+                         extension is different than IMAGE, a conversion is
+                         made. When not given, standard output is used and
+                         images are serialized using Base64; and to JSON
+                         otherwise.
+  
+
 download
 ~~~~~~~~
 Usage: histonets [OPTIONS] [IMAGE]
