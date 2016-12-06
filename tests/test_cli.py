@@ -156,6 +156,10 @@ class TestHistonetsCli(unittest.TestCase):
         result = self.runner.invoke(cli.equalize, ['150', self.image_file])
         assert 'Invalid value for "value"' in result.output
 
+    def test_denoise_invalid_value(self):
+        result = self.runner.invoke(cli.denoise, ['110', self.image_file])
+        assert 'Invalid value for "value"' in result.output
+
     def test_command_pipeline(self):
         actions = json.dumps([
             {'action': 'brightness', 'options': {'value': 150}},

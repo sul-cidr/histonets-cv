@@ -61,5 +61,5 @@ def denoise_image(image, value):
     if (value < 0):
         value = 0
     elif (value > 100):
-        value = 0
+        value = 100
     return cv2.fastNlMeansDenoisingColored(image, None, value, value)

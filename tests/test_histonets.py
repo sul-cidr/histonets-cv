@@ -111,3 +111,24 @@ class TestHistonets(unittest.TestCase):
             histonets.histogram_equalization(image, 140),
             test_hist_eq10
         )
+
+    def test_denoise_image(self):
+        image = self.image
+        test_denoise_img = cv2.imread(image_path('denoised10.png'))
+        assert np.array_equal(
+            histonets.denoise_image(image, 10),
+            test_denoise_img
+        )
+
+    def test_denoise_image_value_parsing(self):
+        image = self.image
+        test_denoise_img0 = cv2.imread(image_path('denoised0.png'))
+        test_denoise_img100 = cv2.imread(image_path('denoised100.png'))
+        assert np.array_equal(
+            histonets.denoise_image(image, -10),
+            test_denoise_img0
+        )
+        assert np.array_equal(
+            histonets.denoise_image(image, 110),
+            test_denoise_img100
+        )
