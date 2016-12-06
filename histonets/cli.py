@@ -5,6 +5,7 @@ from .utils import io_handler, parse_json, RAW
 from .histonets import (
     adjust_brightness,
     adjust_contrast,
+    denoise_image,
     histogram_equalization,
     smooth_image
     )
@@ -122,6 +123,17 @@ def equalize(image, value):
     \b
     - VALUE ranges from 0 to 100."""
     return histogram_equalization(image, value)
+
+
+@main.command()
+@click.argument("value", type=click.IntRange(0, 100))
+@io_handler
+def denoise(image, value):
+    """Denoise IMAGE.
+
+    \b
+    - VALUE ranges from 0 to 100."""
+    return denoise_image(image, value)
 
 
 if __name__ == "__main__":
