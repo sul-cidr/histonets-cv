@@ -227,9 +227,10 @@ class TestHistonetsCli(unittest.TestCase):
         )
         assert 'Error' not in result.output
         assert len(result.output.strip()) > 0
-        with io.open(image_path('poster_linear4.png'), 'rb') as test_image:
-            assert (base64.b64encode(test_image.read()).decode()
-                    == result.output.strip())
+        test_posterize_image = encode_base64_image(
+            image_path('poster_linear4.png')
+            )
+        assert test_posterize_image == result.output.strip()
 
     def test_command_posterize_default_method(self):
         result = self.runner.invoke(
@@ -238,6 +239,7 @@ class TestHistonetsCli(unittest.TestCase):
         )
         assert 'Error' not in result.output
         assert len(result.output.strip()) > 0
-        with io.open(image_path('poster_linear4.png'), 'rb') as test_image:
-            assert (base64.b64encode(test_image.read()).decode()
-                    != result.output.strip())
+        test_posterize_image = encode_base64_image(
+            image_path('poster_linear4.png')
+            )
+        assert test_posterize_image != result.output.strip()
