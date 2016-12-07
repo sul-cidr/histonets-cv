@@ -25,6 +25,11 @@ def image_path(img):
     return os.path.join('tests', 'images', img)
 
 
+def encode_base64_image(img_path):
+    with open(img_path, 'rb') as image:
+        return base64.b64encode(image.read()).decode()
+
+
 class TestHistonetsCli(unittest.TestCase):
     def setUp(self):
         self.image_url = 'http://httpbin.org/image/jpeg'
@@ -145,21 +150,56 @@ class TestHistonetsCli(unittest.TestCase):
         result = self.runner.invoke(cli.contrast, ['250', self.image_file])
         assert 'Invalid value for "value"' in result.output
 
+    def test_contrast_integer(self):
+        test_contrast_image = encode_base64_image(
+            image_path('test_low_contrast.png')
+        )
+        result = self.runner.invoke(cli.contrast, ['50', self.image_file])
+        assert test_contrast_image == result.output.rstrip()
+
     def test_brightness_invalid_value(self):
         result = self.runner.invoke(cli.brightness, ['250', self.image_file])
         assert 'Invalid value for "value"' in result.output
+
+    def test_brightness_integer(self):
+        test_brightness_image = encode_base64_image(
+            image_path('test_brightness_darken.png')
+        )
+        result = self.runner.invoke(cli.brightness, ['50', self.image_file])
+        assert test_brightness_image == result.output.rstrip()
 
     def test_smooth_invalid_value(self):
         result = self.runner.invoke(cli.smooth, ['101', self.image_file])
         assert 'Invalid value for "value"' in result.output
 
+    def test_smooth_integer(self):
+        test_smooth_image = encode_base64_image(
+            image_path('smooth50.png')
+        )
+        result = self.runner.invoke(cli.smooth, ['50', self.image_file])
+        assert test_smooth_image == result.output.rstrip()
+
     def test_histogram_equalization_invalid_value(self):
         result = self.runner.invoke(cli.equalize, ['150', self.image_file])
         assert 'Invalid value for "value"' in result.output
 
+    def test_histogram_equalization_integer(self):
+        test_hist_image = encode_base64_image(
+            image_path('test_hist_eq5.png')
+        )
+        result = self.runner.invoke(cli.equalize, ['50', self.image_file])
+        assert test_hist_image == result.output.rstrip()
+
     def test_denoise_invalid_value(self):
         result = self.runner.invoke(cli.denoise, ['110', self.image_file])
         assert 'Invalid value for "value"' in result.output
+
+    def test_denoise_integer(self):
+        test_denoise_image = encode_base64_image(
+            image_path('denoised10.png')
+        )
+        result = self.runner.invoke(cli.denoise, ['10', self.image_file])
+        assert test_denoise_image == result.output.rstrip()
 
     def test_command_pipeline(self):
         actions = json.dumps([
@@ -187,9 +227,10 @@ class TestHistonetsCli(unittest.TestCase):
         )
         assert 'Error' not in result.output
         assert len(result.output.strip()) > 0
-        with io.open(image_path('poster_linear4.png'), 'rb') as test_image:
-            assert (base64.b64encode(test_image.read()).decode()
-                    == result.output.strip())
+        test_posterize_image = encode_base64_image(
+            image_path('poster_linear4.png')
+            )
+        assert test_posterize_image == result.output.strip()
 
     def test_command_posterize_default_method(self):
         result = self.runner.invoke(
@@ -198,6 +239,7 @@ class TestHistonetsCli(unittest.TestCase):
         )
         assert 'Error' not in result.output
         assert len(result.output.strip()) > 0
-        with io.open(image_path('poster_linear4.png'), 'rb') as test_image:
-            assert (base64.b64encode(test_image.read()).decode()
-                    != result.output.strip())
+        test_posterize_image = encode_base64_image(
+            image_path('poster_linear4.png')
+            )
+        assert test_posterize_image != result.output.strip()
