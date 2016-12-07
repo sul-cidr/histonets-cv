@@ -14,6 +14,7 @@ import cv2
 import numpy as np
 
 import histonets
+from histonets import utils
 
 
 def image_path(img):
@@ -132,3 +133,63 @@ class TestHistonets(unittest.TestCase):
             histonets.denoise_image(image, 110),
             test_denoise_img100
         )
+
+    def test_posterization_linear_4_colors(self):
+        image = self.image
+        test_image = cv2.imread(image_path('poster_linear4.png'))
+        assert np.array_equal(
+            histonets.color_reduction(image, 4, 'linear'),
+            test_image
+        )
+
+    def test_posterization_linear_10_colors(self):
+        image = self.image
+        test_image = cv2.imread(image_path('poster_linear10.png'))
+        assert np.array_equal(
+            histonets.color_reduction(image, 10, 'linear'),
+            test_image
+        )
+
+    def test_posterization_linear_invalid_colors_lower(self):
+        image = self.image
+        test_image = cv2.imread(image_path('poster_linear2.png'))
+        assert np.array_equal(
+            histonets.color_reduction(image, 0, 'linear'),
+            test_image
+        )
+
+    def test_posterization_linear_invalid_colors_higher(self):
+        image = self.image
+        test_image = cv2.imread(image_path('poster_linear128.png'))
+        assert np.array_equal(
+            histonets.color_reduction(image, 500, 'linear'),
+            test_image
+        )
+
+    def test_posterization_kmeans_4_colors(self):
+        image = self.image
+        test_image = cv2.imread(image_path('poster_kmeans4.png'))
+        reduce_image = histonets.color_reduction(image, 4, 'kmeans')
+        assert (len(utils.get_palette(test_image))
+                == len(utils.get_palette(reduce_image)))
+
+    def test_posterization_kmeans_10_colors(self):
+        image = self.image
+        test_image = cv2.imread(image_path('poster_kmeans10.png'))
+        reduce_image = histonets.color_reduction(image, 10, 'kmeans')
+        assert (len(utils.get_palette(test_image))
+                == len(utils.get_palette(reduce_image)))
+
+    def test_posterization_kmeans_invalid_colors_lower(self):
+        image = self.image
+        test_image = cv2.imread(image_path('poster_kmeans2.png'))
+        reduce_image = histonets.color_reduction(image, 0, 'kmeans')
+        assert (len(utils.get_palette(test_image))
+                == len(utils.get_palette(reduce_image)))
+
+    def test_posterization_kmeans_invalid_colors_higher(self):
+        image = self.image
+        test_image = cv2.imread(image_path('poster_kmeans128.png'))
+        reduce_image = histonets.color_reduction(image, 500, 'kmeans')
+        assert (len(utils.get_palette(test_image))
+                == len(utils.get_palette(reduce_image)))

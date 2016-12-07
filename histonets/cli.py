@@ -7,7 +7,8 @@ from .histonets import (
     adjust_contrast,
     denoise_image,
     histogram_equalization,
-    smooth_image
+    smooth_image,
+    color_reduction,
     )
 
 
@@ -134,6 +135,24 @@ def denoise(image, value):
     \b
     - VALUE ranges from 0 to 100."""
     return denoise_image(image, value)
+
+
+@main.command()
+@click.argument("colors", type=click.IntRange(2, 128))
+@click.option('-m', '--method', type=click.Choice(['kmeans', 'linear']),
+              default='kmeans',
+              help='Method for computing the palette. \'kmeans\' performs '
+                   'a clusterization of the existing colors using the K-Means '
+                   'algorithm; \'linear\' tries to quantize colors in a '
+                   'linear scale, therefore will approximate to the next '
+                   'power of 2. Defaults to \'kmeans\'')
+@io_handler
+def posterize(image, colors, method):
+    """Posterize IMAGE by reducing its number of colors.
+
+    \b
+    - COLORS, the number of colors of the output image, ranges from 0 to 64."""
+    return color_reduction(image, colors, method)
 
 
 if __name__ == "__main__":

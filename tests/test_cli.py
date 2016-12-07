@@ -219,3 +219,25 @@ class TestHistonetsCli(unittest.TestCase):
         result = self.runner.invoke(cli.pipeline, [actions, self.image_file])
         assert 'Error' in result.output
         assert len(result.output.strip()) > 0
+
+    def test_command_posterize_linear(self):
+        result = self.runner.invoke(
+            cli.posterize,
+            ['4', '-m', 'linear', self.image_file]
+        )
+        assert 'Error' not in result.output
+        assert len(result.output.strip()) > 0
+        with io.open(image_path('poster_linear4.png'), 'rb') as test_image:
+            assert (base64.b64encode(test_image.read()).decode()
+                    == result.output.strip())
+
+    def test_command_posterize_default_method(self):
+        result = self.runner.invoke(
+            cli.posterize,
+            ['4', self.image_file]
+        )
+        assert 'Error' not in result.output
+        assert len(result.output.strip()) > 0
+        with io.open(image_path('poster_linear4.png'), 'rb') as test_image:
+            assert (base64.b64encode(test_image.read()).decode()
+                    != result.output.strip())
