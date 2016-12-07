@@ -95,3 +95,8 @@ class TestHistonetsUtils(unittest.TestCase):
         func = utils.image_as_array(lambda x: x)
         assert np.array_equal(image.image, func(image))
         assert np.array_equal(image.image, func(image.image))
+
+    def test_get_palette(self):
+        image = utils.Image.get_images([self.image_file])[0]
+        colors = utils.get_palette(image)
+        assert len(colors) == 59823

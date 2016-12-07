@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import base64
+import collections
 import errno
 import imghdr
 import io
@@ -231,3 +232,10 @@ def parse_json(ctx, param, value):
         if 'action' not in action:
             raise click.BadParameter('Missing key for action')
     return obj
+
+
+@image_as_array
+def get_palette(image):
+    """Calculate the color palette of image (colors and their counts)"""
+    colors = np.reshape(image, (np.prod(image.shape[:2]), 3)).tolist()
+    return collections.Counter([tuple(color) for color in colors])
