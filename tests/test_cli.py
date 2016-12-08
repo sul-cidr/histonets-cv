@@ -212,6 +212,23 @@ class TestHistonetsCli(unittest.TestCase):
         with io.open(self.image_5050_b64) as image_b64:
             assert result.output == image_b64.read()
 
+    def test_command_pipeline_all_actions(self):
+        actions = json.dumps([
+            {"action": "denoise", "options": {"value": 9}},
+            {"action": "equalize", "options": {"value": 10}},
+            {"action": "brightness", "options": {"value": 122}},
+            {"action": "contrast", "options": {"value": 122}},
+            {"action": "smooth", "options": {"value": 12}},
+            {"action": "posterize", "options":
+                {"colors": 4, "method": "kmeans"}}
+        ])
+        result = self.runner.invoke(cli.pipeline, [actions, self.image_file])
+        assert 'Error' not in result.output
+        test_pipeline_full = encode_base64_image(
+            image_path('test_full_pipeline.png')
+        )
+        assert test_pipeline_full == result.output.strip()
+
     def test_command_pipeline_invalid(self):
         actions = json.dumps([
             {'action': 'command not found', 'options': {'value': 50}},
