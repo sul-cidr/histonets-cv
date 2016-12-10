@@ -1,10 +1,13 @@
 # -*- coding: utf-8 -*-
-import cv2
-import numpy as np
-from skimage import exposure
-from sklearn.cluster import MiniBatchKMeans
+from collections import namedtuple
 
-from .utils import image_as_array
+import cv2
+import noteshrink
+import numpy as np
+from PIL import Image as PILImage
+from skimage import exposure
+
+from .utils import image_as_array, get_palette, kmeans
 
 
 @image_as_array
@@ -81,10 +84,8 @@ def color_reduction(image, n_colors, method='kmeans'):
         h, w = image.shape[:2]
         img = cv2.cvtColor(image, cv2.COLOR_BGR2LAB)
         img = img.reshape((img.shape[0] * img.shape[1], 3))
-        clf = MiniBatchKMeans(n_clusters=n_clusters)
-        labels = clf.fit_predict(img)
-        raw_quant = clf.cluster_centers_.astype(np.ubyte)[labels]
-        quant = raw_quant.reshape((h, w, 3))
+        centers, labels = kmeans(img, n_clusters)
+        quant = centers[labels].reshape((h, w, 3))
         reduced = cv2.cvtColor(quant, cv2.COLOR_LAB2BGR)
     else:
         # convert to the exponent of the next power of 2
@@ -96,3 +97,53 @@ def color_reduction(image, n_colors, method='kmeans'):
         palette = quantiz[color_levels]
         reduced = cv2.convertScaleAbs(palette[image])
     return reduced
+
+
+@image_as_array
+def auto_clean(image, background_value=25, background_saturation=20,
+               colors=8, sample_fraction=5, white_background=False,
+               saturate=True):
+    """Clean image with minimal input required. Based on the work by
+    Matt Zucker: https://mzucker.github.io/2016/09/20/noteshrink.html"""
+    if background_value < 1:
+        background_value = 1
+    elif background_value > 100:
+        background_value = 100
+    if background_saturation < 1:
+        background_saturation = 1
+    elif background_saturation > 100:
+        background_saturation = 100
+    if sample_fraction < 1:
+        sample_fraction = 1
+    elif sample_fraction > 100:
+        sample_fraction = 100
+    if colors < 2:
+        colors = 2
+    elif colors > 128:
+        colors = 128
+    options = namedtuple(
+        'options',
+        ['quiet', 'sample_fraction', 'value_threshold', 'sat_threshold']
+    )(
+        quiet=True,
+        sample_fraction=sample_fraction / 100.0,
+        value_threshold=background_value / 100.0,
+        sat_threshold=background_saturation / 100.0,
+    )
+    rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    samples = noteshrink.sample_pixels(rgb_image, options)
+    palette = get_palette(samples, colors, background_value,
+                          background_saturation)
+    labels = noteshrink.apply_palette(rgb_image, palette, options)
+    if saturate:
+        palette = palette.astype(np.float32)
+        pmin = palette.min()
+        pmax = palette.max()
+        palette = 255 * (palette - pmin) / (pmax - pmin)
+        palette = palette.astype(np.uint8)
+    if white_background:
+        palette = palette.copy()
+        palette[0] = (255, 255, 255)
+    output = PILImage.fromarray(labels, 'P')
+    output.putpalette(palette.flatten())
+    return np.array(output.convert('RGB'))[:, :, ::-1]  # swap R and G channels

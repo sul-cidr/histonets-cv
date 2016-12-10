@@ -9,7 +9,8 @@ from .histonets import (
     histogram_equalization,
     smooth_image,
     color_reduction,
-    )
+    auto_clean,
+)
 
 
 @click.group(invoke_without_command=True)
@@ -145,7 +146,7 @@ def denoise(image, value):
                    'a clusterization of the existing colors using the K-Means '
                    'algorithm; \'linear\' tries to quantize colors in a '
                    'linear scale, therefore will approximate to the next '
-                   'power of 2. Defaults to \'kmeans\'')
+                   'power of 2. Defaults to \'kmeans\'.')
 @io_handler
 def posterize(image, colors, method):
     """Posterize IMAGE by reducing its number of colors.
@@ -153,6 +154,45 @@ def posterize(image, colors, method):
     \b
     - COLORS, the number of colors of the output image, ranges from 0 to 64."""
     return color_reduction(image, colors, method)
+
+
+@main.command()
+@click.option('-bv', '--background-value', type=click.IntRange(1, 100),
+              default=25,
+              help='Threshold value to consider a pixel background. '
+                   '. Ranges from 0 to 100. Defaults to 25.')
+@click.option('-bs', '--background-saturation', type=click.IntRange(1, 100),
+              default=20,
+              help='Threshold saturation to consider a pixel background. '
+                   'Ranges from 0 to 100. Defaults to 20.')
+@click.option('-c', '--colors', type=click.IntRange(2, 128),
+              default=8,
+              help='Number of output colors. Ranges from 2 to 128. '
+                   'Defaults to 8.')
+@click.option('-f', '--sample-fraction', type=click.IntRange(1, 100),
+              default=5,
+              help='Percentage of pixels to sample. Ranges from 0 to 100. '
+                   'Defaults to 5.')
+@click.option('-w', '--white-background', is_flag=True,
+              default=False,
+              help='Make background white.')
+@click.option('-s/-ns', '--saturate/--no-saturate',
+              default=True,
+              help='Saturate colors (default).')
+@io_handler
+def clean(image, background_value, background_saturation, colors,
+          sample_fraction, white_background, saturate):
+    """Clean IMAGE automatically with sane defaults and allows for parameter
+    fine tunning."""
+    return auto_clean(image, background_value, background_saturation,
+                      colors, sample_fraction, white_background, saturate)
+
+
+@main.command()
+@io_handler
+def enhance(image):
+    """Clean IMAGE automatically with sane defaults."""
+    return auto_clean(image)
 
 
 if __name__ == "__main__":
