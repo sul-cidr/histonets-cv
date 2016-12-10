@@ -13,8 +13,13 @@ import locale
 import subprocess
 import unittest
 
-import numpy as np
 import click
+import cv2
+import noteshrink
+import numpy as np
+from collections import namedtuple
+from sklearn.cluster import MiniBatchKMeans
+from sklearn.datasets.samples_generator import make_blobs
 
 from histonets import utils
 
@@ -29,6 +34,7 @@ class TestHistonetsUtils(unittest.TestCase):
         self.image_file = 'file://' + self.image_png
         self.image_5050_b64 = image_path('test_5050.b64')
         self.image_404 = 'file:///not_found.png'
+        self.image_clean = 'file://' + image_path('clean1.png')
 
     def test_get_images(self):
         images = utils.Image.get_images([self.image_file, self.image_file])
@@ -100,3 +106,51 @@ class TestHistonetsUtils(unittest.TestCase):
         image = utils.Image.get_images([self.image_file])[0]
         colors = utils.get_color_histogram(image)
         assert len(colors) == 59823
+
+    def test_kmeans(self):
+        n_clusters = 5
+        X, y = make_blobs(n_samples=1000, centers=n_clusters, random_state=0)
+        centers, labels = utils.kmeans(X, n_clusters)
+        clf = MiniBatchKMeans(n_clusters=n_clusters)
+        assert len(labels) == len(clf.fit_predict(X))
+        assert len(centers) == len(clf.cluster_centers_)
+
+    def test_get_palette_min_values(self):
+        image = utils.Image.get_images([self.image_clean])[0].image
+        rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        options = namedtuple(
+            'options',
+            ['quiet', 'sample_fraction', 'value_threshold', 'sat_threshold']
+        )(
+            quiet=True,
+            sample_fraction=.01,
+            value_threshold=.01,
+            sat_threshold=.01,
+        )
+        samples = noteshrink.sample_pixels(rgb_image, options)
+        palette = utils.get_palette(samples, 2, background_value=1,
+                                    background_saturation=1)
+        test_palette = np.array([[254, 122, 94], [193, 86, 64]])
+        assert palette.shape == test_palette.shape
+        # background colors must coincide
+        assert np.array_equal(palette[0], test_palette[0])
+
+    def test_get_palette_max_values(self):
+        image = utils.Image.get_images([self.image_clean])[0].image
+        rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        options = namedtuple(
+            'options',
+            ['quiet', 'sample_fraction', 'value_threshold', 'sat_threshold']
+        )(
+            quiet=True,
+            sample_fraction=1,
+            value_threshold=1,
+            sat_threshold=1,
+        )
+        samples = noteshrink.sample_pixels(rgb_image, options)
+        palette = utils.get_palette(samples, 128, background_value=100,
+                                    background_saturation=100)
+        background_color = np.array([254, 122, 94])
+        assert palette.shape == (128, 3)
+        # background colors must coincide
+        assert np.array_equal(palette[0], background_color)
