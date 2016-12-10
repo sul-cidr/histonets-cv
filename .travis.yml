@@ -24,6 +24,7 @@ deploy:
 env:
 - TOXENV=py35
 - TOXENV=flake8
+- TOXENV=safety
 install: pip install -U tox "codecov>=1.4.0"
 language: python
 python: 3.5
