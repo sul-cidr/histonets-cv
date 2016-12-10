@@ -237,6 +237,16 @@ class TestHistonetsCli(unittest.TestCase):
         assert 'Error' in result.output
         assert len(result.output.strip()) > 0
 
+    def test_command_pipeline_reraise_error(self):
+        actions = json.dumps([
+            {"action": "posterize", "options":
+                {"value": 4, "method": "linear"}}
+        ])
+        result = self.runner.invoke(cli.pipeline, [actions, self.image_file])
+        assert 'Error' in result.output
+        assert not isinstance(result.exception, TypeError)
+        assert len(result.output.strip()) > 0
+
     def test_command_posterize_linear(self):
         result = self.runner.invoke(
             cli.posterize,
