@@ -71,7 +71,10 @@ def pipeline(image, actions):
             raise click.BadParameter(
                 "Action '{}' not found".format(action['action']))
         options['output'] = RAW
-        output = command.callback(*arguments, **options)
+        try:
+            output = command.callback(*arguments, **options)
+        except TypeError as e:
+            raise click.BadParameter(e)
     return output
 
 
