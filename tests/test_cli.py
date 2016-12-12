@@ -220,7 +220,7 @@ class TestHistonetsCli(unittest.TestCase):
             {"action": "contrast", "options": {"value": 122}},
             {"action": "smooth", "options": {"value": 12}},
             {"action": "posterize", "options":
-                {"colors": 4, "method": "kmeans"}}
+                {"colors": 4, "method": "linear"}}
         ])
         result = self.runner.invoke(cli.pipeline, [actions, self.image_file])
         assert 'Error' not in result.output
