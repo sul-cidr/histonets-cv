@@ -12,10 +12,13 @@ import sys
 
 import click
 import cv2
+import noteshrink
 import numpy as np
 import requests
+from collections import namedtuple
 from requests.adapters import BaseAdapter
 from requests.compat import urlparse, unquote
+from sklearn.cluster import MiniBatchKMeans
 
 
 # Constants
@@ -239,3 +242,38 @@ def get_color_histogram(image):
     """Calculate the color histogram of image (colors and their counts)"""
     colors = np.reshape(image, (np.prod(image.shape[:2]), 3)).tolist()
     return collections.Counter([tuple(color) for color in colors])
+
+
+@image_as_array
+def get_palette(image, n_colors, background_value=0.25,
+                background_saturation=0.2):
+    """Calculate a palette of n_colors from RGB values in image. The
+    first palette entry is always the background color; the rest are determined
+    from foreground pixels by running K-Means clustering. Returns the
+    palette."""
+    options = namedtuple(
+        'options', ['quiet', 'value_threshold', 'sat_threshold']
+    )(
+        quiet=True,
+        value_threshold=background_value / 100.0,
+        sat_threshold=background_saturation / 100.0,
+    )
+    bg_color = noteshrink.get_bg_color(image, 6)  # 6 bits per channel
+    fg_mask = noteshrink.get_fg_mask(bg_color, image, options)
+    if any(fg_mask):
+        masked_image = image[fg_mask]
+    else:
+        masked_image = image
+    centers, _ = kmeans(masked_image, n_colors - 1)
+    palette = np.vstack((bg_color, centers)).astype(np.uint8)
+    return palette
+
+
+def kmeans(X, n_clusters, **kwargs):
+    """Classify vectors in X using K-Means algorithm with n_clusters.
+    Arguments in kwargs are passed to scikit-learn MiniBatchKMeans.
+    Returns a tuple of cluster centers and predicted labels."""
+    clf = MiniBatchKMeans(n_clusters=n_clusters, **kwargs)
+    labels = clf.fit_predict(X)
+    centers = clf.cluster_centers_.astype(np.ubyte)
+    return centers, labels

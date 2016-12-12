@@ -256,7 +256,7 @@ class TestHistonetsCli(unittest.TestCase):
         assert len(result.output.strip()) > 0
         test_posterize_image = encode_base64_image(
             image_path('poster_linear4.png')
-            )
+        )
         assert test_posterize_image == result.output.strip()
 
     def test_command_posterize_default_method(self):
@@ -268,5 +268,22 @@ class TestHistonetsCli(unittest.TestCase):
         assert len(result.output.strip()) > 0
         test_posterize_image = encode_base64_image(
             image_path('poster_linear4.png')
-            )
+        )
         assert test_posterize_image != result.output.strip()
+
+    def test_command_clean(self):
+        result = self.runner.invoke(cli.clean, [self.image_file])
+        assert 'Error' not in result.output
+        assert len(result.output.strip()) > 0
+        test_clean = encode_base64_image(image_path('clean.png'))
+        image = encode_base64_image(self.image_png)
+        assert abs(np.ceil(len(result.output.strip()) / 1e5)
+                   - np.ceil(len(test_clean) / 1e5)) <= 2
+        assert len(test_clean) < len(image)
+        assert len(result.output.strip()) < len(image)
+
+    def test_command_enhance(self):
+        result_clean = self.runner.invoke(cli.clean, [self.image_file])
+        result_enhance = self.runner.invoke(cli.enhance, [self.image_file])
+        assert abs(np.ceil(len(result_clean.output) / 1e5)
+                   - np.ceil(len(result_enhance.output) / 1e5)) <= 2

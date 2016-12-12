@@ -193,3 +193,41 @@ class TestHistonets(unittest.TestCase):
         reduce_image = histonets.color_reduction(image, 500, 'kmeans')
         assert (len(utils.get_color_histogram(test_image))
                 == len(utils.get_color_histogram(reduce_image)))
+
+    def test_auto_clean(self):
+        image = self.image
+        test_image = cv2.imread(image_path('clean.png'))
+        reduce_image = histonets.auto_clean(image)
+        assert (len(utils.get_color_histogram(test_image))
+                == len(utils.get_color_histogram(reduce_image)))
+
+    def test_auto_clean_non_default(self):
+        image = self.image
+        test_image = cv2.imread(image_path('clean.png'))
+        reduce_image = histonets.auto_clean(
+            image, background_value=30, background_saturation=25,
+            colors=12, sample_fraction=7, white_background=True,
+            saturate=False
+        )
+        assert (len(utils.get_color_histogram(test_image))
+                != len(utils.get_color_histogram(reduce_image)))
+
+    def test_auto_clean_invalid_lower(self):
+        image = self.image
+        test_image = cv2.imread(image_path('clean1.png'))
+        reduce_image = histonets.auto_clean(
+            image, background_value=-1, background_saturation=-1,
+            colors=-1, sample_fraction=-1
+        )
+        assert (len(utils.get_color_histogram(test_image))
+                == len(utils.get_color_histogram(reduce_image)))
+
+    def test_auto_clean_invalid_higher(self):
+        image = self.image
+        test_image = cv2.imread(image_path('clean100.png'))
+        reduce_image = histonets.auto_clean(
+            image, background_value=110, background_saturation=110,
+            colors=150, sample_fraction=110
+        )
+        assert (len(utils.get_color_histogram(test_image))
+                == len(utils.get_color_histogram(reduce_image)))

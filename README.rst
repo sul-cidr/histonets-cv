@@ -65,6 +65,42 @@ Options:
                          otherwise.
   
 
+clean
+~~~~~
+Usage: histonets [OPTIONS] [IMAGE]
+
+Clean IMAGE automatically with sane defaults and allows for parameter
+fine tunning.
+
+- IMAGE path to a local (file://) or remote (http://, https://) image file.
+  A Base64 string can also be piped as input image.
+
+Options:
+
+  -bv, --background-value INTEGER RANGE
+                                  Threshold value to consider a pixel
+                                  background. . Ranges from 0 to 100. Defaults
+                                  to 25.
+  -bs, --background-saturation INTEGER RANGE
+                                  Threshold saturation to consider a pixel
+                                  background. Ranges from 0 to 100. Defaults
+                                  to 20.
+  -c, --colors INTEGER RANGE      Number of output colors. Ranges from 2 to
+                                  128. Defaults to 8.
+  -f, --sample-fraction INTEGER RANGE
+                                  Percentage of pixels to sample. Ranges from
+                                  0 to 100. Defaults to 5.
+  -w, --white-background          Make background white.
+  -s, --saturate / -ns, --no-saturate
+                                  Saturate colors (default).
+  -o, --output FILENAME           File name to save the output. For images, if
+                                  the file extension is different than IMAGE,
+                                  a conversion is made. When not given,
+                                  standard output is used and images are
+                                  serialized using Base64; and to JSON
+                                  otherwise.
+  
+
 contrast
 ~~~~~~~~
 Usage: histonets [OPTIONS] VALUE [IMAGE]
@@ -108,6 +144,24 @@ download
 Usage: histonets [OPTIONS] [IMAGE]
 
 Download IMAGE.
+
+- IMAGE path to a local (file://) or remote (http://, https://) image file.
+  A Base64 string can also be piped as input image.
+
+Options:
+
+  -o, --output FILENAME  File name to save the output. For images, if the file
+                         extension is different than IMAGE, a conversion is
+                         made. When not given, standard output is used and
+                         images are serialized using Base64; and to JSON
+                         otherwise.
+  
+
+enhance
+~~~~~~~
+Usage: histonets [OPTIONS] [IMAGE]
+
+Clean IMAGE automatically with sane defaults.
 
 - IMAGE path to a local (file://) or remote (http://, https://) image file.
   A Base64 string can also be piped as input image.
@@ -185,7 +239,7 @@ Options:
                                 colors using the K-Means algorithm; 'linear'
                                 tries to quantize colors in a linear scale,
                                 therefore will approximate to the next power
-                                of 2. Defaults to 'kmeans'
+                                of 2. Defaults to 'kmeans'.
   -o, --output FILENAME         File name to save the output. For images, if
                                 the file extension is different than IMAGE, a
                                 conversion is made. When not given, standard
