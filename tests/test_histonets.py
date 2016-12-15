@@ -279,7 +279,7 @@ class TestHistonets(unittest.TestCase):
             {'image': template, 'threshold': 100}
         ]
         matches_100 = histonets.match_templates(image, templates_100)
-        assert matches_high == matches_high
+        assert matches_high == matches_100
 
     def test_match_templates_threshold_low(self):
         image = self.image
