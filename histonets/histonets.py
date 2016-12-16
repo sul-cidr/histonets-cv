@@ -7,7 +7,7 @@ import numpy as np
 from PIL import Image as PILImage
 from skimage import exposure
 
-from .utils import image_as_array, get_palette, kmeans
+from .utils import image_as_array, get_palette, kmeans, Image
 
 
 @image_as_array
@@ -147,3 +147,30 @@ def auto_clean(image, background_value=25, background_saturation=20,
     output = PILImage.fromarray(labels, 'P')
     output.putpalette(palette.flatten())
     return np.array(output.convert('RGB'))[:, :, ::-1]  # swap R and G channels
+
+
+@image_as_array
+def match_templates(image, templates):
+    """Look for templates in image and return the matches"""
+    default_threshold = 80
+    gray_image = cv2.equalizeHist(cv2.cvtColor(image, cv2.COLOR_BGR2GRAY))
+    rectangles = []
+    for template in templates:
+        threshold = template.get('threshold', default_threshold)
+        if threshold > 100:
+            threshold = 100
+        elif threshold < 0:
+            threshold = 0
+        threshold /= 100.0
+        template_image = template.get('image')
+        if isinstance(template_image, Image):
+            template_image = template_image.image
+        gray_template = cv2.equalizeHist(cv2.cvtColor(template_image,
+                                                      cv2.COLOR_BGR2GRAY))
+        width, height = gray_template.shape[::-1]
+        results = cv2.matchTemplate(gray_image, gray_template,
+                                    cv2.TM_CCOEFF_NORMED)
+        points = np.where(results >= threshold)
+        for point in zip(*points[::-1]):
+            rectangles.append((point, (point[0] + width, point[1] + height)))
+    return rectangles

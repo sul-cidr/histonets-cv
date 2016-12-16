@@ -231,3 +231,65 @@ class TestHistonets(unittest.TestCase):
         )
         assert (len(utils.get_color_histogram(test_image))
                 == len(utils.get_color_histogram(reduce_image)))
+
+    def test_match_templates(self):
+        image = self.image
+        template = cv2.imread(image_path('template.png'))
+        templates = [
+            {'image': template, 'threshold': 95}
+        ]
+        matches = histonets.match_templates(image, templates)
+        test_matches = [((259, 349), (329, 381))]
+        assert test_matches == matches
+
+    def test_match_templates_thresholds(self):
+        image = self.image
+        template = cv2.imread(image_path('template.png'))
+        templates1 = [
+            {'image': template, 'threshold': 95}
+        ]
+        matches1 = histonets.match_templates(image, templates1)
+        templates2 = [
+            {'image': template, 'threshold': 5}
+        ]
+        matches2 = histonets.match_templates(image, templates2)
+        assert matches1 != matches2
+
+    def test_match_templates_threshold_default(self):
+        image = self.image
+        template = cv2.imread(image_path('template.png'))
+        templates = [
+            {'image': template, 'threshold': 80}
+        ]
+        matches = histonets.match_templates(image, templates)
+        default_templates = [
+            {'image': template}
+        ]
+        default_matches = histonets.match_templates(image, default_templates)
+        assert default_matches == matches
+
+    def test_match_templates_threshold_high(self):
+        image = self.image
+        template = cv2.imread(image_path('template.png'))
+        templates_high = [
+            {'image': template, 'threshold': 150}
+        ]
+        matches_high = histonets.match_templates(image, templates_high)
+        templates_100 = [
+            {'image': template, 'threshold': 100}
+        ]
+        matches_100 = histonets.match_templates(image, templates_100)
+        assert matches_high == matches_100
+
+    def test_match_templates_threshold_low(self):
+        image = self.image
+        template = cv2.imread(image_path('template.png'))
+        templates_low = [
+            {'image': template, 'threshold': -10}
+        ]
+        matches_low = histonets.match_templates(image, templates_low)
+        templates_0 = [
+            {'image': template, 'threshold': 0}
+        ]
+        matches_0 = histonets.match_templates(image, templates_0)
+        assert matches_low == matches_0
