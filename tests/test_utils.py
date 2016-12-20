@@ -171,6 +171,7 @@ class TestHistonetsUtils(unittest.TestCase):
 
     def test_pair_options_to_argument_args(self):
         args = ['im', 't1', '-o', '1', 't2', 't3', '-o', '3']
+
         @click.command()
         @click.argument('img')
         @click.argument('arg', nargs=-1, required=True)
@@ -188,6 +189,7 @@ class TestHistonetsUtils(unittest.TestCase):
 
     def test_pair_options_to_argument_args_default(self):
         args = ['im', 't1', 't2', 't3']
+
         @click.command()
         @click.argument('img')
         @click.argument('arg', nargs=-1, required=True)
