@@ -39,6 +39,7 @@ class TestHistonetsCli(unittest.TestCase):
         self.image_png = image_path('test.png')
         self.image_b64 = image_path('test.b64')
         self.image_5050_b64 = image_path('test_5050.b64')
+        self.image_template = 'file://' + image_path('template.png')
         self.tmp_jpg = os.path.join(tempfile.gettempdir(), 'test.jpg')
         self.tmp_png = os.path.join(tempfile.gettempdir(), 'test.png')
         self.tmp_tiff = os.path.join(tempfile.gettempdir(), 'test.tiff')
@@ -287,3 +288,31 @@ class TestHistonetsCli(unittest.TestCase):
         result_enhance = self.runner.invoke(cli.enhance, [self.image_file])
         assert abs(np.ceil(len(result_clean.output) / 1e5)
                    - np.ceil(len(result_enhance.output) / 1e5)) <= 2
+
+    def test_command_match(self):
+        result = self.runner.invoke(
+            cli.match,
+            [self.image_template, '-th', 95, self.image_file]
+        )
+        assert 'Error' not in result.output
+        assert [[[259, 349], [329, 381]]] == json.loads(result.output)
+
+    def test_command_match_default(self):
+        result_default = self.runner.invoke(
+            cli.match,
+            [self.image_template, self.image_file]
+        )
+        result = self.runner.invoke(
+            cli.match,
+            [self.image_template, '-th', 80, self.image_file]
+        )
+        assert 'Error' not in result.output
+        assert 'Error' not in result_default.output
+        assert result_default.output == result.output
+
+    def test_command_match_invalid(self):
+        result = self.runner.invoke(
+            cli.match,
+            [self.image_template, '-th', 95, '-th', 80, self.image_file]
+        )
+        assert 'Error' in result.output
