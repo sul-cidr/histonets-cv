@@ -1,7 +1,13 @@
 # -*- coding: utf-8 -*-
 import click
 
-from .utils import io_handler, pair_options_to_argument, parse_json, RAW
+from .utils import (
+    get_images,
+    io_handler,
+    pair_options_to_argument,
+    parse_json,
+    RAW,
+)
 from .histonets import (
     adjust_brightness,
     adjust_contrast,
@@ -10,6 +16,7 @@ from .histonets import (
     smooth_image,
     color_reduction,
     auto_clean,
+    match_templates,
 )
 
 
@@ -199,7 +206,7 @@ def enhance(image):
 
 
 @main.command()
-@click.argument('templates', nargs=-1, required=True)
+@click.argument('templates', nargs=-1, required=True, callback=get_images)
 @click.option('-th', '--threshold', type=click.IntRange(0, 100),
               multiple=True,
               help='Threshold to match TEMPLATE to IMAGE. '
@@ -218,17 +225,15 @@ def match(image, templates, threshold):
     - TEMPLATE is a path to a local (file://) or remote (http://, https://)
       image file of the template to look for."""
     if len(set(len(x) for x in (templates, threshold))) != 1:
-        raise click.BadParameter('Some options are missing.')
-    _templates = []
+        raise click.BadParameter('Some templates or options are missing.')
+    image_templates = []
     for template, template_threshold in zip(*[templates, threshold]):
-        _templates.append({
-            'template': template,
-            'options': {
-                'threshold': template_threshold,
-            }
+        image_templates.append({
+            'image': template,
+            'threshold': template_threshold,
         })
-    click.echo(_templates)
+    return match_templates(image, image_templates)
 
 
 if __name__ == "__main__":
-    main()
+    main()  # pragma: no cover
