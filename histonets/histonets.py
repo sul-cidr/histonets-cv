@@ -151,7 +151,10 @@ def auto_clean(image, background_value=25, background_saturation=20,
 
 @image_as_array
 def match_templates(image, templates):
-    """Look for templates in image and return the matches"""
+    """Look for templates in image and return the matches.
+
+    Each entry in the templates list is a dictionary with keys 'image'
+    and 'threshold'."""
     default_threshold = 80
     gray_image = cv2.equalizeHist(cv2.cvtColor(image, cv2.COLOR_BGR2GRAY))
     rectangles = []
@@ -172,5 +175,9 @@ def match_templates(image, templates):
                                     cv2.TM_CCOEFF_NORMED)
         points = np.where(results >= threshold)
         for point in zip(*points[::-1]):
-            rectangles.append((point, (point[0] + width, point[1] + height)))
+            px = int(point[0])
+            py = int(point[1])
+            rectangles.append(
+                ((px, py), (px + width, py + height))
+            )
     return rectangles

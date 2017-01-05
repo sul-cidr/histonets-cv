@@ -15,6 +15,7 @@ import cv2
 import noteshrink
 import numpy as np
 import requests
+from click.utils import get_os_args
 from collections import namedtuple
 from requests.adapters import BaseAdapter
 from requests.compat import urlparse, unquote
@@ -157,6 +158,14 @@ def image_as_array(f):
     return wrapper
 
 
+def get_images(ctx, param, value):
+    """Callback to retrieve images by either their local path or URL"""
+    try:
+        return Image.get_images(value)  # return only first Image
+    except Exception as e:
+        raise click.BadParameter(e)
+
+
 def io_handler(f, *args, **kwargs):
     """Decorator to handle the 'image' argument and the 'output' option"""
 
@@ -210,6 +219,79 @@ def io_handler(f, *args, **kwargs):
         """      A Base64 string can also be piped as input image.""".format(
             f.__doc__, new_line))
     return wrapper
+
+
+def pair_options_to_argument(argument, options, args=None, args_slice=None):
+    """Enforces pairing of options to an argument. Only commands with one
+    argument with nargs=-1 are supported. Not paired options do still work.
+
+    Options is a dictionary with the option name as key and the default value
+    as value. A slice to specify where in the arguments the argument and the
+    options are found can be used. By default it will ignore first and last.
+
+    Example::
+
+        @click.command()
+        @click.argument('arg', nargs=-1, required=True)
+        @click.option('-o', '--option', multiple=True)
+        @pair_options_to_argument('arg', {'option': 0})
+        def command(arg, option):
+            pass
+    """
+    pairings = list(options.values())
+    args_slice = args_slice or (1, -1)
+    _args = args
+
+    def func(f):
+        def wrapper(*args, **kwargs):
+            ctx = click.get_current_context()
+            append = ''
+            os_args = []
+            for os_arg in (_args or get_os_args())[slice(*args_slice)]:
+                if os_arg.startswith('-'):
+                    append = os_arg
+                else:
+                    os_args.append(("{}\b".format(append), os_arg))
+                    append = ''
+            params = {}
+            defaults = {}
+            for param in ctx.command.get_params(ctx):
+                if param.name in options.keys():
+                    params[param.name] = param.opts
+                    defaults[param.name] = param.default
+            _kwargs = {k: v for k, v in kwargs.items() if k in pairings}
+            _params = {k: {} for k, v in params.items()}
+            if pairings and os_args:
+                index = 0
+                for prefix, _ in os_args:
+                    if prefix.startswith('\b'):
+                        index += 1
+                    else:
+                        for name, opts in params.items():
+                            if any(prefix.startswith(opt) for opt in opts):
+                                kw_arg_index = len(_params[name])
+                                kw_arg = kwargs[name][kw_arg_index]
+                                _params[name][index - 1] = kw_arg
+                for name, opts in _params.items():
+                    default = defaults[name] or options[name]
+                    _list = [default] * len(kwargs[argument])
+                    for k, v in opts.items():
+                        _list[k] = v
+                    _kwargs[name] = tuple(_list)
+                kwargs.update(_kwargs)
+            if all(len(kwargs[opt]) == 0 for opt in options):
+                for name, opts in _params.items():
+                    default = defaults[name] or options[name]
+                    _list = [default] * len(kwargs[argument])
+                    for k, v in opts.items():
+                        _list[k] = v
+                    _kwargs[name] = tuple(_list)
+                kwargs.update(_kwargs)
+            return f(*args, **kwargs)
+        wrapper.__name__ = f.__name__
+        wrapper.__doc__ = f.__doc__
+        return wrapper
+    return func
 
 
 def local_encode(value):

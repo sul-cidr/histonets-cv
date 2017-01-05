@@ -8,6 +8,7 @@ test_utils
 Tests for `histonets.utils` module.
 """
 import io
+import json
 import os
 import locale
 import subprocess
@@ -17,6 +18,7 @@ import click
 import cv2
 import noteshrink
 import numpy as np
+from click.testing import CliRunner
 from collections import namedtuple
 from sklearn.cluster import MiniBatchKMeans
 from sklearn.datasets.samples_generator import make_blobs
@@ -40,6 +42,18 @@ class TestHistonetsUtils(unittest.TestCase):
         images = utils.Image.get_images([self.image_file, self.image_file])
         for image in images:
             assert isinstance(image, utils.Image)
+
+    def test_get_images_callback(self):
+        images = utils.Image.get_images([self.image_file, self.image_file])
+        images_callback = utils.get_images(None, None,
+                                           [self.image_file, self.image_file])
+        for image, images_callback in zip(*[images, images_callback]):
+            assert isinstance(images_callback, utils.Image)
+            assert np.array_equal(image.image, images_callback.image)
+
+    def test_get_images_callback_invalid(self):
+        with self.assertRaises(click.BadParameter):
+            utils.get_images(None, None, [self.image_file, self.image_404])
 
     def test_get_images_class(self):
         images = utils.Image.get_images([self.image_file, self.image_file])
@@ -154,3 +168,64 @@ class TestHistonetsUtils(unittest.TestCase):
         assert palette.shape == (128, 3)
         # background colors must coincide
         assert np.array_equal(palette[0], background_color)
+
+    def test_pair_options_to_argument_args(self):
+        args = ['im', 't1', '-o', '1', 't2', 't3', '-o', '3']
+
+        @click.command()
+        @click.argument('img')
+        @click.argument('arg', nargs=-1, required=True)
+        @click.option('-o', '--option', multiple=True)
+        @utils.pair_options_to_argument(
+            'arg', {'option': 0}, args=args, args_slice=(1, None)
+        )
+        def command(img, arg, option):
+            click.echo(json.dumps((arg, option)))
+
+        runner = CliRunner()
+        output = runner.invoke(command, args).output
+        assert 'Error' not in output
+        assert [["t1", "t2", "t3"], ["1", 0, "3"]] == json.loads(output)
+
+    def test_pair_options_to_argument_args_default(self):
+        args = ['im', 't1', 't2', 't3']
+
+        @click.command()
+        @click.argument('img')
+        @click.argument('arg', nargs=-1, required=True)
+        @click.option('-o', '--option', multiple=True)
+        @utils.pair_options_to_argument(
+            'arg', {'option': 0}, args=args, args_slice=(1, None)
+        )
+        def command(img, arg, option):
+            click.echo(json.dumps((arg, option)))
+
+        runner = CliRunner()
+        output = runner.invoke(command, args).output
+        assert 'Error' not in output
+        assert [["t1", "t2", "t3"], [0, 0, 0]] == json.loads(output)
+
+    def test_pair_options_to_argument(self):
+        code = """
+import json
+import click
+from histonets import utils
+@click.group()
+def main():
+    pass
+@main.command()
+@click.argument('img')
+@click.argument('arg', nargs=-1, required=True)
+@click.option('-o', '--option', multiple=True)
+@utils.pair_options_to_argument('arg', {'option': 0}, args_slice=(2, None))
+def command(img, arg, option):
+    click.echo(json.dumps((arg, option)))
+main()
+        """
+        cmd = ("echo \"{}\" "
+               "| python - command im t1 -o 1 t2 t3 -o 3".format(code))
+        ps = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE,
+                              stderr=subprocess.STDOUT)
+        output = ps.communicate()[0].decode()
+        assert 'Error' not in output
+        assert [["t1", "t2", "t3"], ["1", 0, "3"]] == json.loads(output)

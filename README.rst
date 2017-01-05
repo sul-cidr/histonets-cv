@@ -79,7 +79,7 @@ Options:
 
   -bv, --background-value INTEGER RANGE
                                   Threshold value to consider a pixel
-                                  background. . Ranges from 0 to 100. Defaults
+                                  background. Ranges from 0 to 100. Defaults
                                   to 25.
   -bs, --background-saturation INTEGER RANGE
                                   Threshold saturation to consider a pixel
@@ -192,6 +192,34 @@ Options:
                          made. When not given, standard output is used and
                          images are serialized using Base64; and to JSON
                          otherwise.
+  
+
+match
+~~~~~
+Usage: histonets [OPTIONS] TEMPLATES... [IMAGE]
+
+Look for TEMPLATES in IMAGE and return the bounding boxes of
+the matches. Options may be provided after each TEMPLATE.
+
+Example::
+
+  histonets match http://foo.bar/tmpl1 -th 50 http://foo.bar/tmpl2 -th 95
+
+- TEMPLATE is a path to a local (file://) or remote (http://, https://)
+  image file of the template to look for.
+- IMAGE path to a local (file://) or remote (http://, https://) image file.
+  A Base64 string can also be piped as input image.
+
+Options:
+
+  -th, --threshold INTEGER RANGE  Threshold to match TEMPLATE to IMAGE. Ranges
+                                  from 0 to 100. Defaults to 80.
+  -o, --output FILENAME           File name to save the output. For images, if
+                                  the file extension is different than IMAGE,
+                                  a conversion is made. When not given,
+                                  standard output is used and images are
+                                  serialized using Base64; and to JSON
+                                  otherwise.
   
 
 pipeline

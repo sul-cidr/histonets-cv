@@ -1,7 +1,13 @@
 # -*- coding: utf-8 -*-
 import click
 
-from .utils import io_handler, parse_json, RAW
+from .utils import (
+    get_images,
+    io_handler,
+    pair_options_to_argument,
+    parse_json,
+    RAW,
+)
 from .histonets import (
     adjust_brightness,
     adjust_contrast,
@@ -10,6 +16,7 @@ from .histonets import (
     smooth_image,
     color_reduction,
     auto_clean,
+    match_templates,
 )
 
 
@@ -163,7 +170,7 @@ def posterize(image, colors, method):
 @click.option('-bv', '--background-value', type=click.IntRange(1, 100),
               default=25,
               help='Threshold value to consider a pixel background. '
-                   '. Ranges from 0 to 100. Defaults to 25.')
+                   'Ranges from 0 to 100. Defaults to 25.')
 @click.option('-bs', '--background-saturation', type=click.IntRange(1, 100),
               default=20,
               help='Threshold saturation to consider a pixel background. '
@@ -198,5 +205,35 @@ def enhance(image):
     return auto_clean(image)
 
 
+@main.command()
+@click.argument('templates', nargs=-1, required=True, callback=get_images)
+@click.option('-th', '--threshold', type=click.IntRange(0, 100),
+              multiple=True,
+              help='Threshold to match TEMPLATE to IMAGE. '
+                   'Ranges from 0 to 100. Defaults to 80.')
+@io_handler
+@pair_options_to_argument('templates', {'threshold': 80})
+def match(image, templates, threshold):
+    """Look for TEMPLATES in IMAGE and return the bounding boxes of
+    the matches. Options may be provided after each TEMPLATE.
+
+    Example::
+
+      histonets match http://foo.bar/tmpl1 -th 50 http://foo.bar/tmpl2 -th 95
+
+    \b
+    - TEMPLATE is a path to a local (file://) or remote (http://, https://)
+      image file of the template to look for."""
+    if len(set(len(x) for x in (templates, threshold))) != 1:
+        raise click.BadParameter('Some templates or options are missing.')
+    image_templates = []
+    for template, template_threshold in zip(*[templates, threshold]):
+        image_templates.append({
+            'image': template,
+            'threshold': template_threshold,
+        })
+    return match_templates(image, image_templates)
+
+
 if __name__ == "__main__":
-    main()
+    main()  # pragma: no cover
