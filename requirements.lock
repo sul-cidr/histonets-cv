@@ -1,5 +1,5 @@
 click==6.6
-numpy==1.11.2
+numpy>=1.11.3
 opencv-python>=3.1
 requests==2.12.1
 scikit-image==0.12.3
