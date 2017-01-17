@@ -332,18 +332,6 @@ class TestHistonetsCli(unittest.TestCase):
         )
         assert 'Error' not in result_h.output
         assert result.output == result_h.output
-        result_v = self.runner.invoke(
-            cli.match,
-            [self.image_template_v, '-th', 95, '-f', 'v', self.image_file]
-        )
-        assert 'Error' not in result_v.output
-        assert result.output == result_v.output
-        result_b = self.runner.invoke(
-            cli.match,
-            [self.image_template_b, '-th', 95, '-f', 'b', self.image_file]
-        )
-        assert 'Error' not in result_b.output
-        assert result.output == result_b.output
 
     def test_command_match_flip_vertically(self):
         result = self.runner.invoke(
