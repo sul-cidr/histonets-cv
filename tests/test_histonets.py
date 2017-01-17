@@ -240,7 +240,7 @@ class TestHistonets(unittest.TestCase):
         ]
         matches = histonets.match_templates(image, templates)
         test_matches = [((259, 349), (329, 381))]
-        assert test_matches == matches
+        assert np.array_equal(test_matches, matches)
 
     def test_match_templates_thresholds(self):
         image = self.image
@@ -253,7 +253,7 @@ class TestHistonets(unittest.TestCase):
             {'image': template, 'threshold': 5}
         ]
         matches2 = histonets.match_templates(image, templates2)
-        assert matches1 != matches2
+        assert not np.array_equal(matches1, matches2)
 
     def test_match_templates_threshold_default(self):
         image = self.image
@@ -266,7 +266,7 @@ class TestHistonets(unittest.TestCase):
             {'image': template}
         ]
         default_matches = histonets.match_templates(image, default_templates)
-        assert default_matches == matches
+        assert np.array_equal(default_matches, matches)
 
     def test_match_templates_threshold_high(self):
         image = self.image
@@ -279,7 +279,7 @@ class TestHistonets(unittest.TestCase):
             {'image': template, 'threshold': 100}
         ]
         matches_100 = histonets.match_templates(image, templates_100)
-        assert matches_high == matches_100
+        assert np.array_equal(matches_high, matches_100)
 
     def test_match_templates_threshold_low(self):
         image = self.image
@@ -292,4 +292,43 @@ class TestHistonets(unittest.TestCase):
             {'image': template, 'threshold': 0}
         ]
         matches_0 = histonets.match_templates(image, templates_0)
-        assert matches_low == matches_0
+        assert np.array_equal(matches_low, matches_0)
+
+    def test_match_templates_flip_horizontally(self):
+        image = self.image
+        template = cv2.imread(image_path('template.png'))
+        templates = [
+            {'image': template, 'threshold': 95}
+        ]
+        matches = histonets.match_templates(image, templates)
+        templates_flip = [
+            {'image': cv2.imread(image_path('template_h.png')), 'flip': 'h'}
+        ]
+        matches_flip = histonets.match_templates(image, templates_flip)
+        assert np.array_equal(matches_flip, matches)
+
+    def test_match_templates_flip_vertically(self):
+        image = self.image
+        template = cv2.imread(image_path('template.png'))
+        templates = [
+            {'image': template, 'threshold': 95}
+        ]
+        matches = histonets.match_templates(image, templates)
+        templates_flip = [
+            {'image': cv2.imread(image_path('template_v.png')), 'flip': 'v'}
+        ]
+        matches_flip = histonets.match_templates(image, templates_flip)
+        assert np.array_equal(matches_flip, matches)
+
+    def test_match_templates_flip_both(self):
+        image = self.image
+        template = cv2.imread(image_path('template.png'))
+        templates = [
+            {'image': template, 'threshold': 95}
+        ]
+        matches = histonets.match_templates(image, templates)
+        templates_flip = [
+            {'image': cv2.imread(image_path('template_b.png')), 'flip': 'b'}
+        ]
+        matches_flip = histonets.match_templates(image, templates_flip)
+        assert np.array_equal(matches_flip, matches)

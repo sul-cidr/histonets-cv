@@ -4,6 +4,7 @@ from collections import namedtuple
 import cv2
 import noteshrink
 import numpy as np
+from imutils import object_detection
 from PIL import Image as PILImage
 from skimage import exposure
 
@@ -150,14 +151,14 @@ def auto_clean(image, background_value=25, background_saturation=20,
 
 
 @image_as_array
-def match_templates(image, templates):
+def match_templates(image, templates, overlap=0.15):
     """Look for templates in image and return the matches.
 
     Each entry in the templates list is a dictionary with keys 'image'
     and 'threshold'."""
     default_threshold = 80
     gray_image = cv2.equalizeHist(cv2.cvtColor(image, cv2.COLOR_BGR2GRAY))
-    rectangles = []
+    rectangles = np.empty([0, 2, 2], dtype=int)
     for template in templates:
         threshold = template.get('threshold', default_threshold)
         if threshold > 100:
@@ -166,18 +167,32 @@ def match_templates(image, templates):
             threshold = 0
         threshold /= 100.0
         template_image = template.get('image')
+        template_flip = template.get('flip')
         if isinstance(template_image, Image):
             template_image = template_image.image
         gray_template = cv2.equalizeHist(cv2.cvtColor(template_image,
                                                       cv2.COLOR_BGR2GRAY))
-        width, height = gray_template.shape[::-1]
-        results = cv2.matchTemplate(gray_image, gray_template,
-                                    cv2.TM_CCOEFF_NORMED)
-        points = np.where(results >= threshold)
-        for point in zip(*points[::-1]):
-            px = int(point[0])
-            py = int(point[1])
-            rectangles.append(
-                ((px, py), (px + width, py + height))
+        transformations = [lambda im: im]
+        if template_flip:
+            if template_flip[0] in ('h', 'a'):
+                transformations.append(lambda im: cv2.flip(im, 1))
+            elif template_flip[0] in ('v', 'a'):
+                transformations.append(lambda im: cv2.flip(im, 0))
+            elif template_flip[0] in ('b', 'a'):
+                transformations.append(lambda im: cv2.flip(cv2.flip(im, 1), 0))
+        for transformation in transformations:
+            image_template = transformation(gray_template)
+            height, width = image_template.shape
+            results = cv2.matchTemplate(gray_image, image_template,
+                                        cv2.TM_CCOEFF_NORMED)
+            index = results >= threshold
+            y1, x1 = np.where(index)
+            y2, x2 = y1 + height, x1 + width
+            coords = np.array([x1, y1, x2, y2], dtype=int).T
+            probs = results[index]
+            boxes = np.array(
+                object_detection.non_max_suppression(coords, probs, overlap)
             )
-    return rectangles
+            xyboxes = boxes.reshape(boxes.shape[0], 2, 2)  # list of x,y points
+            rectangles = np.vstack([rectangles, xyboxes])
+    return rectangles.astype(int)
