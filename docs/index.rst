@@ -1,5 +1,5 @@
 Welcome to Histonets Computer Vision's documentation!
-======================================
+=====================================================
 
 Contents:
 
@@ -9,6 +9,7 @@ Contents:
    readme
    installation
    usage
+   modules
    contributing
    history
 
