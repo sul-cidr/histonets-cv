@@ -187,6 +187,26 @@ class TestHistonetsUtils(unittest.TestCase):
         assert 'Error' not in output
         assert [["t1", "t2", "t3"], ["1", 0, "3"]] == json.loads(output)
 
+    def test_two_paired_options_to_argument_args(self):
+        args = ['im', 't1', '-o', '1', 't2', '-a', '3', 't3']
+
+        @click.command()
+        @click.argument('img')
+        @click.argument('arg', nargs=-1, required=True)
+        @click.option('-o', '--option', multiple=True)
+        @click.option('-a', '--another', multiple=True)
+        @utils.pair_options_to_argument(
+            'arg', {'option': 0, 'another': 1}, args=args, args_slice=(1, None)
+        )
+        def command(img, arg, option, another):
+            click.echo(json.dumps((arg, option, another)))
+
+        runner = CliRunner()
+        output = runner.invoke(command, args).output
+        assert 'Error' not in output
+        assert ([["t1", "t2", "t3"], ["1", 0, 0], [1, "3", 1]]
+                    == json.loads(output))
+
     def test_pair_options_to_argument_args_default(self):
         args = ['im', 't1', 't2', 't3']
 
