@@ -205,7 +205,7 @@ class TestHistonetsUtils(unittest.TestCase):
         output = runner.invoke(command, args).output
         assert 'Error' not in output
         assert ([["t1", "t2", "t3"], ["1", 0, 0], [1, "3", 1]]
-                    == json.loads(output))
+                == json.loads(output))
 
     def test_pair_options_to_argument_args_default(self):
         args = ['im', 't1', 't2', 't3']
