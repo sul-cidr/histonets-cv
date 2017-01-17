@@ -40,6 +40,9 @@ class TestHistonetsCli(unittest.TestCase):
         self.image_b64 = image_path('test.b64')
         self.image_5050_b64 = image_path('test_5050.b64')
         self.image_template = 'file://' + image_path('template.png')
+        self.image_template_h = 'file://' + image_path('template_h.png')
+        self.image_template_v = 'file://' + image_path('template_v.png')
+        self.image_template_b = 'file://' + image_path('template_b.png')
         self.tmp_jpg = os.path.join(tempfile.gettempdir(), 'test.jpg')
         self.tmp_png = os.path.join(tempfile.gettempdir(), 'test.png')
         self.tmp_tiff = os.path.join(tempfile.gettempdir(), 'test.tiff')
@@ -316,3 +319,42 @@ class TestHistonetsCli(unittest.TestCase):
             [self.image_template, '-th', 95, '-th', 80, self.image_file]
         )
         assert 'Error' in result.output
+
+    def test_command_match_flip_horizontally(self):
+        result = self.runner.invoke(
+            cli.match,
+            [self.image_template, '-th', 95, self.image_file]
+        )
+        assert 'Error' not in result.output
+        result_h = self.runner.invoke(
+            cli.match,
+            [self.image_template_h, '-th', 95, '-f', 'h', self.image_file]
+        )
+        assert 'Error' not in result_h.output
+        assert result.output == result_h.output
+
+    def test_command_match_flip_vertically(self):
+        result = self.runner.invoke(
+            cli.match,
+            [self.image_template, '-th', 95, self.image_file]
+        )
+        assert 'Error' not in result.output
+        result_v = self.runner.invoke(
+            cli.match,
+            [self.image_template_v, '-th', 95, '-f', 'v', self.image_file]
+        )
+        assert 'Error' not in result_v.output
+        assert result.output == result_v.output
+
+    def test_command_match_flip_both(self):
+        result = self.runner.invoke(
+            cli.match,
+            [self.image_template, '-th', 95, self.image_file]
+        )
+        assert 'Error' not in result.output
+        result_b = self.runner.invoke(
+            cli.match,
+            [self.image_template_b, '-th', 95, '-f', 'b', self.image_file]
+        )
+        assert 'Error' not in result_b.output
+        assert result.output == result_b.output

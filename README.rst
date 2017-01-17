@@ -214,6 +214,10 @@ Options:
 
   -th, --threshold INTEGER RANGE  Threshold to match TEMPLATE to IMAGE. Ranges
                                   from 0 to 100. Defaults to 80.
+  -f, --flip [horizontal|h|vertical|v|both|b|all|a]
+                                  Whether also match TEMPLATE flipped
+                                  horizontally. vertically, or both. Defaults
+                                  to not flipping.
   -o, --output FILENAME           File name to save the output. For images, if
                                   the file extension is different than IMAGE,
                                   a conversion is made. When not given,

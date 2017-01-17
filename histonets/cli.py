@@ -211,9 +211,17 @@ def enhance(image):
               multiple=True,
               help='Threshold to match TEMPLATE to IMAGE. '
                    'Ranges from 0 to 100. Defaults to 80.')
+@click.option('-f', '--flip', type=click.Choice(
+                ['horizontal', 'h', 'vertical', 'v', 'both', 'b', 'all', 'a']),
+              multiple=True,
+              help='Whether also match TEMPLATE flipped horizontally. '
+                   'vertically, or both. Defaults to not flipping.')
 @io_handler
-@pair_options_to_argument('templates', {'threshold': 80})
-def match(image, templates, threshold):
+@pair_options_to_argument('templates', {
+    'threshold': 80,
+    'flip': None,
+})
+def match(image, templates, threshold, flip):
     """Look for TEMPLATES in IMAGE and return the bounding boxes of
     the matches. Options may be provided after each TEMPLATE.
 
@@ -224,15 +232,22 @@ def match(image, templates, threshold):
     \b
     - TEMPLATE is a path to a local (file://) or remote (http://, https://)
       image file of the template to look for."""
-    if len(set(len(x) for x in (templates, threshold))) != 1:
+    # TODO: Click invoke fails at testing time, but not at runtime :(
+    #       flip should be a list of None's of the same length that threshold
+    if not flip:
+        flip = [None] * len(threshold)
+    args = (templates, threshold, flip)
+    if len(set(len(x) for x in args)) != 1:
         raise click.BadParameter('Some templates or options are missing.')
     image_templates = []
-    for template, template_threshold in zip(*[templates, threshold]):
+    for template, template_threshold, template_flip in zip(*args):
         image_templates.append({
             'image': template,
             'threshold': template_threshold,
+            'flip': template_flip,
         })
-    return match_templates(image, image_templates)
+    matches = match_templates(image, image_templates)
+    return matches.tolist()
 
 
 if __name__ == "__main__":

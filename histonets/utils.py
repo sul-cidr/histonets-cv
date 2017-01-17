@@ -131,6 +131,7 @@ class Image(object):
                             content = response.content
                         else:
                             content = None
+                        response.close()
                     except Exception as e:
                         raise click.BadParameter(e)
                     image = cls(content)
