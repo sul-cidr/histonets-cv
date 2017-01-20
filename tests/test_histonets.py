@@ -332,3 +332,22 @@ class TestHistonets(unittest.TestCase):
         ]
         matches_flip = histonets.match_templates(image, templates_flip)
         assert np.array_equal(matches_flip, matches)
+
+    def test_match_templates_mask(self):
+        image = self.image
+        template = cv2.imread(image_path('template_m.png'))
+        polygon = [
+            [50, 50],
+            [120, 50],
+            [120, 82],
+            [50, 82],
+        ]
+        mask = utils.get_mask_polygons([polygon], *template.shape[:2])
+        templates = [{
+            'image': template,
+            'threshold': 45,
+            'mask': mask,
+        }]
+        test_matches = [[[209, 299], [379, 431]]]
+        matches = histonets.match_templates(image, templates)
+        assert np.array_equal(test_matches, matches)

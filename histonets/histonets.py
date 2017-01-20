@@ -8,7 +8,7 @@ from imutils import object_detection
 from PIL import Image as PILImage
 from skimage import exposure
 
-from .utils import image_as_array, get_palette, kmeans, Image
+from .utils import image_as_array, get_palette, kmeans, match_template_mask
 
 
 @image_as_array
@@ -154,10 +154,11 @@ def auto_clean(image, background_value=25, background_saturation=20,
 def match_templates(image, templates, overlap=0.15):
     """Look for templates in image and return the matches.
 
-    Each entry in the templates list is a dictionary with keys 'image'
-    and 'threshold'."""
+    Each entry in the templates list is a dictionary with keys 'image',
+    'threshold', 'flip', 'mask' and its matching
+    'method' (None, 'laplacian', 'canny')."""
     default_threshold = 80
-    gray_image = cv2.equalizeHist(cv2.cvtColor(image, cv2.COLOR_BGR2GRAY))
+    gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     rectangles = np.empty([0, 2, 2], dtype=int)
     for template in templates:
         threshold = template.get('threshold', default_threshold)
@@ -168,10 +169,9 @@ def match_templates(image, templates, overlap=0.15):
         threshold /= 100.0
         template_image = template.get('image')
         template_flip = template.get('flip')
-        if isinstance(template_image, Image):
-            template_image = template_image.image
-        gray_template = cv2.equalizeHist(cv2.cvtColor(template_image,
-                                                      cv2.COLOR_BGR2GRAY))
+        template_mask = template.get('mask')
+        template_method = template.get('method', 'canny')  # defaults to canny
+        gray_template = cv2.cvtColor(template_image, cv2.COLOR_BGR2GRAY)
         transformations = [lambda im: im]
         if template_flip:
             if template_flip[0] in ('h', 'a'):
@@ -181,10 +181,14 @@ def match_templates(image, templates, overlap=0.15):
             elif template_flip[0] in ('b', 'a'):
                 transformations.append(lambda im: cv2.flip(cv2.flip(im, 1), 0))
         for transformation in transformations:
-            image_template = transformation(gray_template)
-            height, width = image_template.shape
-            results = cv2.matchTemplate(gray_image, image_template,
-                                        cv2.TM_CCOEFF_NORMED)
+            transformed_template = transformation(gray_template)
+            height, width = transformed_template.shape
+            if template_mask is not None:
+                transformed_mask = transformation(template_mask)
+            else:
+                transformed_mask = None
+            results = match_template_mask(gray_image, transformed_template,
+                                          transformed_mask, template_method)
             index = results >= threshold
             y1, x1 = np.where(index)
             y2, x2 = y1 + height, x1 + width
