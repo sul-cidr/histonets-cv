@@ -1,11 +1,15 @@
 # -*- coding: utf-8 -*-
 import click
+import cv2
 
 from .utils import (
+    Image,
     get_images,
+    get_mask_polygons,
     io_handler,
     pair_options_to_argument,
-    parse_json,
+    parse_jsons,
+    parse_pipeline_json,
     RAW,
 )
 from .histonets import (
@@ -53,7 +57,7 @@ def main(rst=None):
 
 
 @main.command()
-@click.argument("actions", callback=parse_json)
+@click.argument("actions", callback=parse_pipeline_json)
 @io_handler
 def pipeline(image, actions):
     """Allow chaining a series of actions to be applied to IMAGE.
@@ -216,12 +220,19 @@ def enhance(image):
               multiple=True,
               help='Whether also match TEMPLATE flipped horizontally. '
                    'vertically, or both. Defaults to not flipping.')
+@click.option('-e', '--exclude-regions', callback=parse_jsons,
+              multiple=True,
+              help='JSON list of polygons expressed as [x, y] points to '
+                   'specify regions to cut out when matching. '
+                   'For example, [[[50,50],[120,50],[120,82],[50,82]]] '
+                   'is a list that contains one single polygon.')
 @io_handler
 @pair_options_to_argument('templates', {
     'threshold': 80,
     'flip': None,
+    'exclude_regions': None,
 })
-def match(image, templates, threshold, flip):
+def match(image, templates, threshold, flip, exclude_regions):
     """Look for TEMPLATES in IMAGE and return the bounding boxes of
     the matches. Options may be provided after each TEMPLATE.
 
@@ -233,18 +244,31 @@ def match(image, templates, threshold, flip):
     - TEMPLATE is a path to a local (file://) or remote (http://, https://)
       image file of the template to look for."""
     # TODO: Click invoke fails at testing time, but not at runtime :(
-    #       flip should be a list of None's of the same length that threshold
-    if not flip:
-        flip = [None] * len(threshold)
-    args = (templates, threshold, flip)
+    #       template options should be a list of the same length that templates
+    none_list = [None] * len(templates)
+    args = (
+        Image.get_images(templates),  # pipeline does not invoke the decorator
+        threshold or none_list,
+        flip or none_list,
+        exclude_regions or none_list,
+    )
     if len(set(len(x) for x in args)) != 1:
         raise click.BadParameter('Some templates or options are missing.')
     image_templates = []
-    for template, template_threshold, template_flip in zip(*args):
+    for (template_image, template_threshold, template_flip,
+         template_exclude_regions) in zip(*args):
+        mask = None
+        if template_exclude_regions:
+            try:
+                mask = ~get_mask_polygons(template_exclude_regions,
+                                          *template_image.image.shape[:2])
+            except cv2.error:
+                raise click.BadParameter('Polygons JSON is malformed.')
         image_templates.append({
-            'image': template,
+            'image': template_image.image,
             'threshold': template_threshold,
             'flip': template_flip,
+            'mask': mask,
         })
     matches = match_templates(image, image_templates)
     return matches.tolist()

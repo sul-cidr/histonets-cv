@@ -43,6 +43,7 @@ class TestHistonetsCli(unittest.TestCase):
         self.image_template_h = 'file://' + image_path('template_h.png')
         self.image_template_v = 'file://' + image_path('template_v.png')
         self.image_template_b = 'file://' + image_path('template_b.png')
+        self.image_template_m = 'file://' + image_path('template_m.png')
         self.tmp_jpg = os.path.join(tempfile.gettempdir(), 'test.jpg')
         self.tmp_png = os.path.join(tempfile.gettempdir(), 'test.png')
         self.tmp_tiff = os.path.join(tempfile.gettempdir(), 'test.tiff')
@@ -358,3 +359,48 @@ class TestHistonetsCli(unittest.TestCase):
         )
         assert 'Error' not in result_b.output
         assert result.output == result_b.output
+
+    def test_command_match_mask(self):
+        exclude = [
+            [[0, 0], [170, 0], [170, 50], [0, 50]],
+            [[0, 50], [50, 50], [50, 82], [0, 82]],
+            [[120, 50], [170, 50], [170, 82], [120, 82]],
+            [[0, 82], [170, 82], [170, 132], [0, 132]],
+        ]
+        result = self.runner.invoke(
+            cli.match,
+            [self.image_template_m, '-th', 45,
+             '-e', json.dumps(exclude), self.image_file]
+        )
+        test_matches = [[[209, 299], [379, 431]]]
+        assert 'Error' not in result.output
+        assert test_matches == json.loads(result.output)
+
+    def test_command_match_mask_invalid(self):
+        result = self.runner.invoke(
+            cli.match,
+            [self.image_template, '-th', 95,
+             '-e', '[[[1,2],[5,7],[10,23,[2,3]]]', self.image_file]
+        )
+        assert 'Error' in result.output
+        assert 'Polygon' in result.output
+
+    def test_command_pipeline_match(self):
+        exclude = [
+            [[0, 0], [170, 0], [170, 50], [0, 50]],
+            [[0, 50], [50, 50], [50, 82], [0, 82]],
+            [[120, 50], [170, 50], [170, 82], [120, 82]],
+            [[0, 82], [170, 82], [170, 132], [0, 132]],
+        ]
+        actions = json.dumps([
+            {"action": "match", "options": {
+                "templates": [self.image_template_m],
+                "threshold": [45],
+                "flip": ['both'],
+                "exclude_regions": [exclude],
+            }},
+        ])
+        result = self.runner.invoke(cli.pipeline, [actions, self.image_file])
+        test_matches = [[[209, 299], [379, 431]]]
+        assert 'Error' not in result.output
+        assert test_matches == json.loads(result.output)

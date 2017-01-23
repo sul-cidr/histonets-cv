@@ -20,6 +20,7 @@ import noteshrink
 import numpy as np
 from click.testing import CliRunner
 from collections import namedtuple
+from imutils import object_detection
 from sklearn.cluster import MiniBatchKMeans
 from sklearn.datasets.samples_generator import make_blobs
 
@@ -90,24 +91,24 @@ class TestHistonetsUtils(unittest.TestCase):
         encoding = locale.getpreferredencoding(False)
         assert utils.local_encode(string) == string.encode(encoding)
 
-    def test_parse_json(self):
+    def test_parse_pipeline_json(self):
         string = ('[{"action": "brightness", "options": {"value": 150}},'
                   ' {"action": "contrast", "options": {"value": 150}}]')
         obj = [
             {'action': 'brightness', 'options': {'value': 150}},
             {'action': 'contrast', 'options': {'value': 150}}
         ]
-        assert utils.parse_json(None, None, string) == obj
+        assert utils.parse_pipeline_json(None, None, string) == obj
 
-    def test_parse_json_invalid(self):
+    def test_parse_pipeline_json_invalid(self):
         string = ('[{"action": "brightness", "options": {"value": 50}},'
                   ' {"actions": "contrast", "options": {"value": 50}}]')
-        self.assertRaises(click.BadParameter, utils.parse_json,
+        self.assertRaises(click.BadParameter, utils.parse_pipeline_json,
                           None, None, string)
 
-    def test_parse_json_bad_format(self):
+    def test_parse_pipeline_json_bad_format(self):
         string = ('[*{"action": "brightness", "options": {"value": 50}-}')
-        self.assertRaises(click.BadParameter, utils.parse_json,
+        self.assertRaises(click.BadParameter, utils.parse_pipeline_json,
                           None, None, string)
 
     def test_image_as_array(self):
@@ -249,3 +250,61 @@ main()
         output = ps.communicate()[0].decode()
         assert 'Error' not in output
         assert [["t1", "t2", "t3"], ["1", 0, "3"]] == json.loads(output)
+
+    def test_parse_jsons(self):
+        string = ['[[[1,2],[5,7],[10,23],[2,3]]]']
+        obj = [[[[1, 2], [5, 7], [10, 23], [2, 3]]]]
+        assert utils.parse_jsons(None, None, string) == obj
+
+    def test_parse_json_invalid(self):
+        string = ['[[[1,2],[5,7],[10,23,[2,3]]]']
+        self.assertRaises(click.BadParameter, utils.parse_jsons,
+                          None, None, string)
+
+    def test_get_mask_polygons(self):
+        output = np.array(
+           [[0, 0, 0, 0],
+            [0, 255, 255, 255],
+            [0, 255, 255, 255],
+            [0, 0, 0, 0]], dtype=np.uint8)
+        polygons = [[[1, 1], [3, 1], [1, 2], [3, 2]]]
+        shape = (4, 4)
+        assert np.array_equal(utils.get_mask_polygons(polygons, *shape),
+                              output)
+
+    def test_match_template_mask(self):
+        image = utils.Image.get_images([self.image_file])[0].image
+        template = cv2.imread(image_path('template_m.png'))
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        template = cv2.cvtColor(template, cv2.COLOR_BGR2GRAY)
+        exclude = [
+            [[0, 0], [170, 0], [170, 50], [0, 50]],
+            [[0, 50], [50, 50], [50, 82], [0, 82]],
+            [[120, 50], [170, 50], [170, 82], [120, 82]],
+            [[0, 82], [170, 82], [170, 132], [0, 132]],
+        ]
+        height, width = template.shape[:2]
+        mask = ~utils.get_mask_polygons(exclude, height, width)
+        correct_match = [[[209, 299], [379, 431]]]
+        methods = {
+            None: ([[[269, 325], [439, 457]]], 0.14),  # fails at matching
+            'canny': (correct_match, 0.45),  # 0.35 for color
+            'laplacian': (correct_match, 0.21),
+            'sobel': (correct_match, 0.32),
+            'scharr': (correct_match, 0.32),
+            'prewitt': (correct_match, 0.32),
+            'roberts': (correct_match, 0.29),
+        }
+        for method, (test_matches, threshold) in methods.items():
+            results = utils.match_template_mask(image, template, mask, method)
+            overlap = 0.15
+            index = results >= threshold
+            y1, x1 = np.where(index)
+            y2, x2 = y1 + height, x1 + width
+            coords = np.array([x1, y1, x2, y2], dtype=int).T
+            probs = results[index]
+            boxes = np.array(
+                object_detection.non_max_suppression(coords, probs, overlap)
+            )
+            matches = boxes.reshape(boxes.shape[0], 2, 2)
+            assert np.array_equal(test_matches, matches)

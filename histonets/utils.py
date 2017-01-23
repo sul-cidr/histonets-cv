@@ -16,10 +16,11 @@ import noteshrink
 import numpy as np
 import requests
 from click.utils import get_os_args
-from collections import namedtuple
 from requests.adapters import BaseAdapter
 from requests.compat import urlparse, unquote
+from skimage import filters as skfilters
 from sklearn.cluster import MiniBatchKMeans
+from sklearn.preprocessing import minmax_scale
 
 
 # Constants
@@ -162,9 +163,17 @@ def image_as_array(f):
 def get_images(ctx, param, value):
     """Callback to retrieve images by either their local path or URL"""
     try:
-        return Image.get_images(value)  # return only first Image
+        return Image.get_images(value)
     except Exception as e:
         raise click.BadParameter(e)
+
+
+def parse_jsons(ctx, param, value):
+    """Callback to load a list JSON strings as objects"""
+    try:
+        return [json.loads(v) for v in value]
+    except ValueError:
+        raise click.BadParameter("Polygon JSON malformed.")
 
 
 def io_handler(f, *args, **kwargs):
@@ -305,7 +314,7 @@ def local_encode(value):
         return value.encode('utf8', errors='replace')
 
 
-def parse_json(ctx, param, value):
+def parse_pipeline_json(ctx, param, value):
     """Parse the actions JSON used mainly in the pipeline command"""
     try:
         obj = json.loads(value)
@@ -334,7 +343,7 @@ def get_palette(image, n_colors, background_value=0.25,
     first palette entry is always the background color; the rest are determined
     from foreground pixels by running K-Means clustering. Returns the
     palette."""
-    options = namedtuple(
+    options = collections.namedtuple(
         'options', ['quiet', 'value_threshold', 'sat_threshold']
     )(
         quiet=True,
@@ -360,3 +369,53 @@ def kmeans(X, n_clusters, **kwargs):
     labels = clf.fit_predict(X)
     centers = clf.cluster_centers_.astype(np.ubyte)
     return centers, labels
+
+
+def get_mask_polygons(polygons, height, width):
+    """Turn a list of polygons into a mask image of height by width.
+    Each polygon is expressed as a list of [x, y] points."""
+    mask = np.zeros((height, width), dtype=np.ubyte)
+    cv2.fillPoly(mask, np.int32(polygons), color=255)
+    return mask
+
+
+@image_as_array
+def match_template_mask(image, template, mask=None, method=None, sigma=0.33):
+    """Match template against image applying mask to template using method.
+    Method can be either of (None, 'laplacian', 'sobel', 'scharr', 'prewitt',
+    'roberts', 'canny').
+    Returns locations to look for max values."""
+    if mask is not None:
+        if method:
+            kernel = np.ones((3, 3), np.uint8)
+            mask = cv2.erode(mask, kernel)
+            if method == 'laplacian':
+                # use CV_64F to not loose edges, convert to uint8 afterwards
+                edge_image = np.uint8(np.absolute(
+                    cv2.Laplacian(image, cv2.CV_64F)))
+                edge_template = np.uint8(np.absolute(
+                    cv2.Laplacian(template, cv2.CV_64F)
+                ))
+            elif method in ('sobel', 'scharr', 'prewitt', 'roberts'):
+                filter_func = getattr(skfilters, method)
+                edge_image = filter_func(image)
+                edge_template = filter_func(template)
+                edge_image = minmax_scale(edge_image,
+                                          (0, 255)).astype(np.ubyte)
+                edge_template = minmax_scale(edge_template,
+                                             (0, 255)).astype(np.ubyte)
+            else:  # method == 'canny'
+                values = np.hstack([image.ravel(), template.ravel()])
+                median = np.median(values)
+                lower = int(max(0, (1.0 - sigma) * median))
+                upper = int(min(255, (1.0 + sigma) * median))
+                edge_image = cv2.Canny(image, lower, upper)
+                edge_template = cv2.Canny(template, lower, upper)
+            results = cv2.matchTemplate(edge_image, edge_template & mask,
+                                        cv2.TM_CCOEFF_NORMED)
+        else:
+            results = cv2.matchTemplate(image, template, cv2.TM_CCOEFF_NORMED,
+                                        mask)
+    else:
+        results = cv2.matchTemplate(image, template, cv2.TM_CCOEFF_NORMED)
+    return results
