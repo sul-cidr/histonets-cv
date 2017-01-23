@@ -172,7 +172,7 @@ def parse_jsons(ctx, param, value):
     """Callback to load a list JSON strings as objects"""
     try:
         return [json.loads(v) for v in value]
-    except json.decoder.JSONDecodeError:
+    except ValueError:
         raise click.BadParameter("Polygon JSON malformed.")
 
 
