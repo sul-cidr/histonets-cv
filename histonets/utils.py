@@ -371,10 +371,10 @@ def kmeans(X, n_clusters, **kwargs):
     return centers, labels
 
 
-def get_mask_polygons(polygons, hight, width):
-    """Turn a list of polygons into a mask image of hight by width.
+def get_mask_polygons(polygons, height, width):
+    """Turn a list of polygons into a mask image of height by width.
     Each polygon is expressed as a list of [x, y] points."""
-    mask = np.zeros((hight, width), dtype=np.ubyte)
+    mask = np.zeros((height, width), dtype=np.ubyte)
     cv2.fillPoly(mask, np.int32(polygons), color=255)
     return mask
 
