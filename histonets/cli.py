@@ -8,6 +8,7 @@ from .utils import (
     get_mask_polygons,
     io_handler,
     pair_options_to_argument,
+    parse_colors,
     parse_jsons,
     parse_pipeline_json,
     RAW,
@@ -21,6 +22,7 @@ from .histonets import (
     color_reduction,
     auto_clean,
     match_templates,
+    select_colors,
 )
 
 
@@ -272,6 +274,31 @@ def match(image, templates, threshold, flip, exclude_regions):
         })
     matches = match_templates(image, image_templates)
     return matches.tolist()
+
+
+@main.command()
+@click.argument('colors', nargs=-1, required=True, callback=parse_colors)
+@click.option('-t', '--tolerance', type=click.IntRange(0, 100),
+              multiple=True,
+              help='Tolerance to match COLOR in IMAGE. '
+                   'Ranges from 0 to 100. Defaults to 0 (exact COLOR).')
+@click.option('-m', '--mask', is_flag=True,
+              help='Returns a black and white mask instead.')
+@io_handler
+@pair_options_to_argument('colors', {
+    'tolerance': 0,
+})
+def select(image, colors, tolerance, mask):
+    """Select COLORS in IMAGE, turning the rest into black.
+
+    Example::
+
+      histonets select "[225, 47, 90]" "[124, 230, 7]" -t 80  file://...
+
+    \b
+    - COLOR is a JSON string representing a color as a list of
+            its RGB components."""
+    return select_colors(image, zip(*(colors, tolerance)), return_mask=mask)
 
 
 if __name__ == "__main__":
