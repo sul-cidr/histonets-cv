@@ -351,3 +351,41 @@ class TestHistonets(unittest.TestCase):
         test_matches = [[[209, 299], [379, 431]]]
         matches = histonets.match_templates(image, templates)
         assert np.array_equal(test_matches, matches)
+
+    def test_color_mask(self):
+        image = cv2.imread(image_path('poster_kmeans4.png'))
+        image_mask = cv2.imread(image_path('mask_tol50.png'), 0)  # B&W
+        color = (58, 36, 38)
+        tolerance = 50
+        mask = histonets.color_mask(image, color, tolerance)
+        assert np.array_equal(image_mask, mask)
+
+    def test_color_mask_lower(self):
+        image = cv2.imread(image_path('poster_kmeans4.png'))
+        image_mask = cv2.imread(image_path('mask_tol0.png'), 0)  # B&W
+        color = (58, 36, 38)
+        tolerance = -1
+        mask = histonets.color_mask(image, color, tolerance)
+        assert np.array_equal(image_mask, mask)
+
+    def test_color_mask_higher(self):
+        image = cv2.imread(image_path('poster_kmeans4.png'))
+        image_mask = cv2.imread(image_path('mask_tol100.png'), 0)  # B&W
+        color = (58, 36, 38)
+        tolerance = 101
+        mask = histonets.color_mask(image, color, tolerance)
+        assert np.array_equal(image_mask, mask)
+
+    def test_select_colors(self):
+        image = cv2.imread(image_path('poster_kmeans4.png'))
+        masked = cv2.imread(image_path('masked_colors.png'))
+        colors = (((58, 36, 38), 0), ((172, 99, 76), 0))
+        mask = histonets.select_colors(image, colors)
+        assert np.array_equal(masked, mask)
+
+    def test_select_colors_as_mask(self):
+        image = cv2.imread(image_path('poster_kmeans4.png'))
+        masked = cv2.imread(image_path('masked_bw.png'), 0)
+        colors = (((58, 36, 38), 0), ((172, 99, 76), 0))
+        mask = histonets.select_colors(image, colors, return_mask=True)
+        assert np.array_equal(masked, mask)

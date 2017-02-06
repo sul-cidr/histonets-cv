@@ -308,3 +308,18 @@ main()
             )
             matches = boxes.reshape(boxes.shape[0], 2, 2)
             assert np.array_equal(test_matches, matches)
+
+    def test_parse_colors(self):
+        colors = ['[1,2,3]', '[123,123,123]']
+        obj = [(1, 2, 3), (123, 123, 123)]
+        assert utils.parse_colors(None, None, colors) == obj
+
+    def test_parse_colors_malformed(self):
+        colors = ['[1,2,3', '[123,123,123]']
+        self.assertRaises(click.BadParameter, utils.parse_colors,
+                          None, None, colors)
+
+    def test_parse_colors_invalid(self):
+        colors = ['[1,2,300]', '[123,123,123]']
+        self.assertRaises(click.BadParameter, utils.parse_colors,
+                          None, None, colors)
