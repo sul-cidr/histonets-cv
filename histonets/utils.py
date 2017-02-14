@@ -419,3 +419,22 @@ def match_template_mask(image, template, mask=None, method=None, sigma=0.33):
     else:
         results = cv2.matchTemplate(image, template, cv2.TM_CCOEFF_NORMED)
     return results
+
+
+def parse_colors(ctx, param, value):
+    """Callback to parse color values from a JSON list to a RGB tuple"""
+    colors = []
+    for color in value:
+        try:
+            r, g, b = json.loads(color)
+        except ValueError:
+            raise click.BadParameter(
+                "Malformed JSON: {}".format(color)
+            )
+        if all(0 <= c <= 255 for c in (r, g, b)):
+            colors.append((r, g, b))
+        else:
+            raise click.BadParameter(
+                "Invalid color value: {}".format(color)
+            )
+    return colors

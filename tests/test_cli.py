@@ -44,6 +44,7 @@ class TestHistonetsCli(unittest.TestCase):
         self.image_template_v = 'file://' + image_path('template_v.png')
         self.image_template_b = 'file://' + image_path('template_b.png')
         self.image_template_m = 'file://' + image_path('template_m.png')
+        self.image_posterized = 'file://' + image_path('poster_kmeans4.png')
         self.tmp_jpg = os.path.join(tempfile.gettempdir(), 'test.jpg')
         self.tmp_png = os.path.join(tempfile.gettempdir(), 'test.png')
         self.tmp_tiff = os.path.join(tempfile.gettempdir(), 'test.tiff')
@@ -404,3 +405,24 @@ class TestHistonetsCli(unittest.TestCase):
         test_matches = [[[209, 299], [379, 431]]]
         assert 'Error' not in result.output
         assert test_matches == json.loads(result.output)
+
+    def test_command_select_colors(self):
+        result = self.runner.invoke(
+            cli.select,
+            [json.dumps((58, 36, 38)), '-t', 0,
+             json.dumps((172, 99, 76)), '-t', 0,
+             self.image_posterized]
+        )
+        masked = encode_base64_image(image_path('masked_colors.png'))
+        assert masked == result.output.strip()
+
+    def test_command_select_colors_as_mask(self):
+        result = self.runner.invoke(
+            cli.select,
+            [json.dumps((58, 36, 38)), '-t', 0,
+             json.dumps((172, 99, 76)), '-t', 0,
+             '--mask',
+             self.image_posterized]
+        )
+        masked = encode_base64_image(image_path('masked_bw.png'))
+        assert masked == result.output.strip()

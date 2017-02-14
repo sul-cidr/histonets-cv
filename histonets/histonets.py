@@ -200,3 +200,42 @@ def match_templates(image, templates, overlap=0.15):
             xyboxes = boxes.reshape(boxes.shape[0], 2, 2)  # list of x,y points
             rectangles = np.vstack([rectangles, xyboxes])
     return rectangles.astype(int)
+
+
+@image_as_array
+def color_mask(image, color, tolerance=0):
+    """Extract a mask of image according to color under a certain
+    tolerance level (defaults to 0)."""
+    if tolerance > 100:
+        tolerance = 100
+    elif tolerance < 0:
+        tolerance = 0
+    tolerance = int(tolerance * 255 / 100)
+    red, green, blue = color
+    bgr_color = np.uint8([[[blue, green, red]]])
+    hsv_color = cv2.cvtColor(bgr_color, cv2.COLOR_BGR2HSV)[0][0]
+    mask_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+    lower_range = hsv_color - np.array([tolerance, 0, 0])
+    lower_range[lower_range > 255] = 255
+    lower_range[lower_range < 0] = 0
+    upper_range = hsv_color + np.array([tolerance, 0, 0])
+    upper_range[upper_range > 255] = 255
+    upper_range[upper_range < 0] = 0
+    mask = cv2.inRange(mask_image, lower_range, upper_range)
+    return mask
+
+
+@image_as_array
+def select_colors(image, colors, return_mask=False):
+    """Apply several masks to image, each for a color and tolerance, returning
+    the result.
+
+    Each entry in colors is a tuple with an RGB tuple representing the color
+    and a value for the tolerance from 0 to 100: ((123, 45, 98), 10)."""
+    mask = False
+    for color, tolerance in colors:
+        mask |= color_mask(image, color, tolerance)
+    if return_mask:
+        return mask
+    else:
+        return cv2.bitwise_and(image, image, mask=mask)
