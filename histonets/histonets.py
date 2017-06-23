@@ -7,8 +7,11 @@ import numpy as np
 from imutils import object_detection
 from PIL import Image as PILImage
 from skimage import exposure
+from skimage import feature
 
-from .utils import image_as_array, get_palette, kmeans, match_template_mask
+from .utils import (
+    convert, image_as_array, get_palette, kmeans, match_template_mask
+)
 
 
 @image_as_array
@@ -235,6 +238,38 @@ def select_colors(image, colors, return_mask=False):
     mask = False
     for color, tolerance in colors:
         mask |= color_mask(image, color, tolerance)
+    if return_mask:
+        return mask
+    else:
+        return cv2.bitwise_and(image, image, mask=mask)
+
+
+@image_as_array
+def remove_ridges(image, width=6, threshold=160, dilation=3,
+                  return_mask=False):
+    """Detect ridges of width pixels using the highest eigenvector of the
+    Hessian matrix, then create a binarized mask with threshold and remove
+    it from image (set to black). Default values are optimized for text
+    detection and removal.
+
+    A dilation kernel in pixels can be passed in, and the resulting mask can
+    also be returned instead when return_masl is set to True."""
+    gray_image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+    # The value of sigma is calculated according to Steger's work:
+    # An Unbiased Detector of Curvilinear Structures,
+    # IEEE Transactions on Pattern Analysis and Machine Intelligence,
+    # Vol. 20, No. 2, Feb 1998
+    # http://ieeexplore.ieee.org/document/659930/
+    sigma = (width / 2) / np.sqrt(3)
+    hxx, hxy, hyy = feature.hessian_matrix(gray_image, sigma=sigma, order='xy')
+    large_eigenvalues, _ = feature.hessian_matrix_eigvals(hxx, hxy, hyy)
+    mask = convert(large_eigenvalues)
+    mask[mask > threshold] = 255
+    mask[mask <= threshold] = 0
+    if dilation:
+        dilation_kernel = np.ones((dilation, dilation), np.uint8)
+        mask = cv2.dilate(mask, dilation_kernel)
+    mask = 255 - mask
     if return_mask:
         return mask
     else:

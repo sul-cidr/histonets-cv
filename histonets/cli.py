@@ -23,6 +23,7 @@ from .histonets import (
     auto_clean,
     match_templates,
     select_colors,
+    remove_ridges,
 )
 
 
@@ -299,6 +300,33 @@ def select(image, colors, tolerance, mask):
     - COLOR is a JSON string representing a color as a list of
             its RGB components."""
     return select_colors(image, zip(*(colors, tolerance)), return_mask=mask)
+
+
+@main.command()
+@click.option('-w', '--width', type=click.IntRange(1, 100),
+              default=6,
+              help='Width in pixels of the ridges to detect. '
+                   'Ranges from 1 to 100. Defaults to 6.')
+@click.option('-th', '--threshold', type=click.IntRange(0, 255),
+              default=128,
+              help='Threshold to binarize detected ridges. '
+                   'Ranges from 0 to 255. Defaults to 128.')
+@click.option('-d', '--dilation', type=click.IntRange(0, 100),
+              default=3,
+              help='Dilation to thicken the mask of detected ridges. '
+                   'Ranges from 0 to 100. Defaults to 3.')
+@click.option('-m', '--mask', is_flag=True,
+              help='Returns a black and white mask instead.')
+@io_handler
+def ridges(image, width, threshold, dilation, mask):
+    """Remove ridges from IMAGE, turning them into black.
+
+    Example::
+
+      histonets ridges --width 6 file://...
+
+    \b"""
+    return remove_ridges(image, width, threshold, dilation, mask)
 
 
 if __name__ == "__main__":
