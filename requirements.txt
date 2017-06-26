@@ -9,5 +9,4 @@ Sphinx==1.4.8
 cryptography==1.4
 PyYAML==3.11
 codecov==2.0.5
-matplotlib==2.0.2
 
