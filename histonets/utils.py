@@ -400,10 +400,8 @@ def match_template_mask(image, template, mask=None, method=None, sigma=0.33):
                 filter_func = getattr(skfilters, method)
                 edge_image = filter_func(image)
                 edge_template = filter_func(template)
-                edge_image = minmax_scale(edge_image,
-                                          (0, 255)).astype(np.ubyte)
-                edge_template = minmax_scale(edge_template,
-                                             (0, 255)).astype(np.ubyte)
+                edge_image = convert(edge_image)
+                edge_template = convert(edge_template)
             else:  # method == 'canny'
                 values = np.hstack([image.ravel(), template.ravel()])
                 median = np.median(values)
@@ -438,3 +436,8 @@ def parse_colors(ctx, param, value):
                 "Invalid color value: {}".format(color)
             )
     return colors
+
+
+def convert(image):
+    """Convert a scikit-image binary image matrix to OpenCV"""
+    return minmax_scale(image, (0, 255)).astype(np.ubyte)

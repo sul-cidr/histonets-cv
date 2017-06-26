@@ -284,6 +284,36 @@ Options:
                                 Base64; and to JSON otherwise.
   
 
+ridges
+~~~~~~
+Usage: histonets [OPTIONS] [IMAGE]
+
+Remove ridges from IMAGE, turning them into black.
+
+Example::
+
+  histonets ridges --width 6 file://...
+
+- IMAGE path to a local (file://) or remote (http://, https://) image file.
+  A Base64 string can also be piped as input image.
+
+Options:
+
+  -w, --width INTEGER RANGE       Width in pixels of the ridges to detect.
+                                  Ranges from 1 to 100. Defaults to 6.
+  -th, --threshold INTEGER RANGE  Threshold to binarize detected ridges.
+                                  Ranges from 0 to 255. Defaults to 128.
+  -d, --dilation INTEGER RANGE    Dilation to thicken the mask of detected
+                                  ridges. Ranges from 0 to 100. Defaults to 3.
+  -m, --mask                      Returns a black and white mask instead.
+  -o, --output FILENAME           File name to save the output. For images, if
+                                  the file extension is different than IMAGE,
+                                  a conversion is made. When not given,
+                                  standard output is used and images are
+                                  serialized using Base64; and to JSON
+                                  otherwise.
+  
+
 select
 ~~~~~~
 Usage: histonets [OPTIONS] COLORS... [IMAGE]

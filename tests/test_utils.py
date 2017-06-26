@@ -323,3 +323,8 @@ main()
         colors = ['[1,2,300]', '[123,123,123]']
         self.assertRaises(click.BadParameter, utils.parse_colors,
                           None, None, colors)
+
+    def test_convert(self):
+        array = np.array([[0, 1, 0], [1, 0, 0]])
+        converted = np.array([[0, 255, 0], [255, 0, 0]])
+        assert np.array_equal(utils.convert(array), converted)

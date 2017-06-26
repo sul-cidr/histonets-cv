@@ -45,6 +45,7 @@ class TestHistonetsCli(unittest.TestCase):
         self.image_template_b = 'file://' + image_path('template_b.png')
         self.image_template_m = 'file://' + image_path('template_m.png')
         self.image_posterized = 'file://' + image_path('poster_kmeans4.png')
+        self.image_map = 'file://' + image_path('map.png')
         self.tmp_jpg = os.path.join(tempfile.gettempdir(), 'test.jpg')
         self.tmp_png = os.path.join(tempfile.gettempdir(), 'test.png')
         self.tmp_tiff = os.path.join(tempfile.gettempdir(), 'test.tiff')
@@ -426,3 +427,21 @@ class TestHistonetsCli(unittest.TestCase):
         )
         masked = encode_base64_image(image_path('masked_bw.png'))
         assert masked == result.output.strip()
+
+    def test_command_ridges(self):
+        result = self.runner.invoke(
+            cli.ridges,
+            ['-w', 6, '-th', 160, '-d', 3,
+             self.image_map]
+        )
+        masked = encode_base64_image(image_path('map_noridges.png'))
+        assert masked == result.output.strip()
+
+    def test_command_ridges_as_mask(self):
+        result = self.runner.invoke(
+            cli.ridges,
+            ['-w', 6, '-th', 160, '-d', 3, '-m',
+             self.image_map]
+        )
+        mask = encode_base64_image(image_path('map_ridges.png'))
+        assert mask == result.output.strip()

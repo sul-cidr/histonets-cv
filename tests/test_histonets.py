@@ -389,3 +389,15 @@ class TestHistonets(unittest.TestCase):
         colors = (((58, 36, 38), 0), ((172, 99, 76), 0))
         mask = histonets.select_colors(image, colors, return_mask=True)
         assert np.array_equal(masked, mask)
+
+    def test_remmove_ridges(self):
+        image = cv2.imread(image_path('map.png'))
+        masked = cv2.imread(image_path('map_noridges.png'))
+        removed = histonets.remove_ridges(image)
+        assert np.array_equal(masked, removed)
+
+    def test_remmove_ridges_as_mask(self):
+        image = cv2.imread(image_path('map.png'))
+        mask = cv2.imread(image_path('map_ridges.png'), 0)
+        ridges = histonets.remove_ridges(image, return_mask=True)
+        assert np.array_equal(mask, ridges)
