@@ -1,8 +1,11 @@
 # -*- coding: utf-8 -*-
+import sys
+
 import click
 import cv2
 
 from .utils import (
+    Choice,
     Image,
     get_images,
     get_mask_polygons,
@@ -24,6 +27,7 @@ from .histonets import (
     match_templates,
     select_colors,
     remove_ridges,
+    remove_blobs,
 )
 
 
@@ -324,9 +328,43 @@ def ridges(image, width, threshold, dilation, mask):
     Example::
 
       histonets ridges --width 6 file://...
+    """
+    return remove_ridges(image, width, threshold, dilation, return_mask=mask)
 
-    \b"""
-    return remove_ridges(image, width, threshold, dilation, mask)
+
+@main.command()
+@click.option('-min', '--minimum-area', type=int,
+              default=0,
+              help='Minimum area in pixels of the white blobs to detect. '
+                   'Defaults to 0.')
+@click.option('-max', '--maximum-area', type=int,
+              default=sys.maxsize,
+              help="Maximum area in pixels of the white blobs to detect. "
+                   "Defaults to {}.".format(sys.maxsize))
+@click.option('-th', '--threshold', type=click.IntRange(0, 255),
+              default=128,
+              help='Threshold to binarize before detecting blobs. '
+                   'Ranges from 0 to 255. Defaults to 128.')
+@click.option('-c', '--connectivity', type=Choice([4, 8, 16]),
+              help='Connectivity method to consider blobs boundaries. '
+                   'It can take adjacent pixels in a 4 pixels cross '
+                   'neighborhood (top, right, bottom, left), 8 pixels (all '
+                   'around), or 16 pixels (anti-aliased). '
+                   'Defaults to 4 neighbors.')
+@click.option('-m', '--mask', is_flag=True,
+              help='Returns a black and white mask instead.')
+@io_handler
+def blobs(image, minimum_area, maximum_area, threshold, connectivity, mask):
+    """Binarize using threshold and remove white blobs of contiguous pixels
+    of size between min and max from IMAGE, turning them into black.
+
+    Example::
+
+      histonets blobs -max 100 -c 8 file://...
+    """
+    method = "{}-connected".format(connectivity)
+    return remove_blobs(image, minimum_area, maximum_area, threshold, method,
+                        return_mask=mask)
 
 
 if __name__ == "__main__":

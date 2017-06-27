@@ -87,6 +87,13 @@ class FileAdapter(BaseAdapter):
         pass
 
 
+class Choice(click.Choice):
+    """Fix to click.Choice to be able to use integer choices"""
+
+    def get_metavar(self, param):
+        return '[%s]' % '|'.join(str(c) for c in self.choices)
+
+
 class Image(object):
     """Proxy class to handle image input in the commands"""
     __slots__ = ('image', 'format')
@@ -157,6 +164,25 @@ def image_as_array(f):
 
     wrapper.__name__ = f.__name__
     wrapper.__doc__ = f.__doc__
+    return wrapper
+
+
+def output_as_mask(f):
+    """Decorator to add a return_mask option when image and mask are being
+    returned"""
+
+    def wrapper(*args, **kwargs):
+        return_mask = kwargs.pop('return_mask', False)
+        image, mask = f(*args, **kwargs)
+        if return_mask:
+            return mask
+        else:
+            return cv2.bitwise_and(image, image, mask=mask)
+
+    wrapper.__name__ = f.__name__
+    wrapper.__doc__ = """{}
+    The binary mask can also be returned instead by setting
+    return_mask to True.""".format(f.__doc__)
     return wrapper
 
 

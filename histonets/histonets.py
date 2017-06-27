@@ -4,13 +4,19 @@ from collections import namedtuple
 import cv2
 import noteshrink
 import numpy as np
+import sys
 from imutils import object_detection
 from PIL import Image as PILImage
 from skimage import exposure
 from skimage import feature
 
 from .utils import (
-    convert, image_as_array, get_palette, kmeans, match_template_mask
+    convert,
+    image_as_array,
+    get_palette,
+    kmeans,
+    match_template_mask,
+    output_as_mask
 )
 
 
@@ -229,6 +235,7 @@ def color_mask(image, color, tolerance=0):
 
 
 @image_as_array
+@output_as_mask
 def select_colors(image, colors, return_mask=False):
     """Apply several masks to image, each for a color and tolerance, returning
     the result.
@@ -238,13 +245,11 @@ def select_colors(image, colors, return_mask=False):
     mask = False
     for color, tolerance in colors:
         mask |= color_mask(image, color, tolerance)
-    if return_mask:
-        return mask
-    else:
-        return cv2.bitwise_and(image, image, mask=mask)
+    return image, mask
 
 
 @image_as_array
+@output_as_mask
 def remove_ridges(image, width=6, threshold=160, dilation=3,
                   return_mask=False):
     """Detect ridges of width pixels using the highest eigenvector of the
@@ -252,8 +257,8 @@ def remove_ridges(image, width=6, threshold=160, dilation=3,
     it from image (set to black). Default values are optimized for text
     detection and removal.
 
-    A dilation kernel in pixels can be passed in, and the resulting mask can
-    also be returned instead when return_masl is set to True."""
+    A dilation kernel in pixels can be passed in to thicken the mask prior
+    to being applied."""
     gray_image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
     # The value of sigma is calculated according to Steger's work:
     # An Unbiased Detector of Curvilinear Structures,
@@ -269,8 +274,30 @@ def remove_ridges(image, width=6, threshold=160, dilation=3,
     if dilation:
         dilation_kernel = np.ones((dilation, dilation), np.uint8)
         mask = cv2.dilate(mask, dilation_kernel)
-    mask = 255 - mask
-    if return_mask:
-        return mask
-    else:
-        return cv2.bitwise_and(image, image, mask=mask)
+    return image, 255 - mask
+
+
+@image_as_array
+@output_as_mask
+def remove_blobs(image, min_area=0, max_area=sys.maxsize, threshold=128,
+                 method='8-connected'):
+    """Binarize image using threshold, and remove (turn into black)
+    blobs of connected pixels of white of size bigger or equal than
+    min_area but smaller or equal than max_area from the original image,
+    returning it afterward."""
+    method = method.lower()
+    if method == '4-connected':
+        method = cv2.LINE_4
+    elif method in ('16-connected', 'antialiased'):
+        method = cv2.LINE_AA
+    else:  # 8-connected
+        method = cv2.LINE_8
+    gray_image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+    _, mono_image = cv2.threshold(gray_image, threshold, 255, 0)
+    _, all_contours, _ = cv2.findContours(mono_image, cv2.RETR_LIST,
+                                          cv2.CHAIN_APPROX_SIMPLE)
+    contours = np.array([contour for contour in all_contours
+                         if min_area <= cv2.contourArea(contour) <= max_area])
+    mask = np.ones(mono_image.shape, np.uint8)
+    cv2.drawContours(mask, contours, -1, 0, -1, lineType=method)
+    return image, mask

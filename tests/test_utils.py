@@ -328,3 +328,15 @@ main()
         array = np.array([[0, 1, 0], [1, 0, 0]])
         converted = np.array([[0, 255, 0], [255, 0, 0]])
         assert np.array_equal(utils.convert(array), converted)
+
+    def test_output_as_mask(self):
+        image = 255 * np.ones((10, 10), np.uint8)
+        mask = np.zeros(image.shape, np.uint8)
+        masked = cv2.bitwise_and(image, image, mask=mask)
+        func = utils.output_as_mask(lambda x: (x, mask))
+        assert np.array_equal(masked, func(image))
+        assert np.array_equal(mask, func(image, return_mask=True))
+
+    def test_click_choice(self):
+        choice = utils.Choice([1, 2, 3])
+        assert choice.get_metavar(None) == '[1|2|3]'

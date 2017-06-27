@@ -46,6 +46,45 @@ Options:
 Commands
 --------
 
+blobs
+~~~~~
+Usage: histonets [OPTIONS] [IMAGE]
+
+Binarize using threshold and remove white blobs of contiguous pixels
+of size between min and max from IMAGE, turning them into black.
+
+Example::
+
+  histonets blobs -max 100 -c 8 file://...
+
+
+- IMAGE path to a local (file://) or remote (http://, https://) image file.
+  A Base64 string can also be piped as input image.
+
+Options:
+
+  -min, --minimum-area INTEGER    Minimum area in pixels of the white blobs to
+                                  detect. Defaults to 0.
+  -max, --maximum-area INTEGER    Maximum area in pixels of the white blobs to
+                                  detect. Defaults to 9223372036854775807.
+  -th, --threshold INTEGER RANGE  Threshold to binarize before detecting
+                                  blobs. Ranges from 0 to 255. Defaults to
+                                  128.
+  -c, --connectivity [4|8|16]     Connectivity method to consider blobs
+                                  boundaries. It can take adjacent pixels in a
+                                  4 pixels cross neighborhood (top, right,
+                                  bottom, left), 8 pixels (all around), or 16
+                                  pixels (anti-aliased). Defaults to 4
+                                  neighbors.
+  -m, --mask                      Returns a black and white mask instead.
+  -o, --output FILENAME           File name to save the output. For images, if
+                                  the file extension is different than IMAGE,
+                                  a conversion is made. When not given,
+                                  standard output is used and images are
+                                  serialized using Base64; and to JSON
+                                  otherwise.
+  
+
 brightness
 ~~~~~~~~~~
 Usage: histonets [OPTIONS] VALUE [IMAGE]
@@ -293,6 +332,7 @@ Remove ridges from IMAGE, turning them into black.
 Example::
 
   histonets ridges --width 6 file://...
+
 
 - IMAGE path to a local (file://) or remote (http://, https://) image file.
   A Base64 string can also be piped as input image.
