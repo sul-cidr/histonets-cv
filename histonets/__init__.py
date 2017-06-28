@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from .histonets import *  # noqa
+from .api import *  # noqa
 
 __author__ = """Javier de la Rosa"""
 __email__ = 'versae@gmail.com'

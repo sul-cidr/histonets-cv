@@ -16,7 +16,7 @@ from .utils import (
     parse_pipeline_json,
     RAW,
 )
-from .histonets import (
+from .api import (
     adjust_brightness,
     adjust_contrast,
     denoise_image,
