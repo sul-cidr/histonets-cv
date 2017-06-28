@@ -401,3 +401,27 @@ class TestHistonets(unittest.TestCase):
         mask = cv2.imread(image_path('map_ridges.png'), 0)
         ridges = histonets.remove_ridges(image, return_mask=True)
         assert np.array_equal(mask, ridges)
+
+    def test_remove_blobs(self):
+        image = cv2.imread(image_path('map_ridges_invert.png'))
+        mask = cv2.imread(image_path('map_noblobs8.png'))
+        removed = histonets.remove_blobs(image, 0, 100)
+        assert np.array_equal(mask, removed)
+
+    def test_remove_blobs_4connected(self):
+        image = cv2.imread(image_path('map_ridges_invert.png'))
+        mask = cv2.imread(image_path('map_noblobs4.png'))
+        removed = histonets.remove_blobs(image, 0, 100, method='4-connected')
+        assert np.array_equal(mask, removed)
+
+    def test_remove_blobs_8connected(self):
+        image = cv2.imread(image_path('map_ridges_invert.png'))
+        mask = cv2.imread(image_path('map_noblobs8.png'))
+        removed = histonets.remove_blobs(image, 0, 100, method='8-connected')
+        assert np.array_equal(mask, removed)
+
+    def test_remove_blobs_antialiased(self):
+        image = cv2.imread(image_path('map_ridges_invert.png'))
+        mask = cv2.imread(image_path('map_noblobs_antialiased.png'))
+        removed = histonets.remove_blobs(image, 0, 100, method='antialiased')
+        assert np.array_equal(mask, removed)

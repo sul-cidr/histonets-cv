@@ -46,6 +46,7 @@ class TestHistonetsCli(unittest.TestCase):
         self.image_template_m = 'file://' + image_path('template_m.png')
         self.image_posterized = 'file://' + image_path('poster_kmeans4.png')
         self.image_map = 'file://' + image_path('map.png')
+        self.image_map_ridges = 'file://' + image_path('map_ridges_invert.png')
         self.tmp_jpg = os.path.join(tempfile.gettempdir(), 'test.jpg')
         self.tmp_png = os.path.join(tempfile.gettempdir(), 'test.png')
         self.tmp_tiff = os.path.join(tempfile.gettempdir(), 'test.tiff')
@@ -445,3 +446,39 @@ class TestHistonetsCli(unittest.TestCase):
         )
         mask = encode_base64_image(image_path('map_ridges.png'))
         assert mask == result.output.strip()
+
+    def test_command_blobs(self):
+        result = self.runner.invoke(
+            cli.blobs,
+            ['-min', 0, '-max', 100,
+             self.image_map_ridges],
+        )
+        masked = encode_base64_image(image_path('map_noblobs8.png'))
+        assert masked == result.output.strip()
+
+    def test_command_blobs_4connected(self):
+        result = self.runner.invoke(
+            cli.blobs,
+            ['-min', 0, '-max', 100, '-c', 4,
+             self.image_map_ridges],
+        )
+        masked = encode_base64_image(image_path('map_noblobs4.png'))
+        assert masked == result.output.strip()
+
+    def test_command_blobs_8connected(self):
+        result = self.runner.invoke(
+            cli.blobs,
+            ['-min', 0, '-max', 100, '-c', 8,
+             self.image_map_ridges],
+        )
+        masked = encode_base64_image(image_path('map_noblobs8.png'))
+        assert masked == result.output.strip()
+
+    def test_command_blobs_antialiased(self):
+        result = self.runner.invoke(
+            cli.blobs,
+            ['-min', 0, '-max', 100, '-c', 16,
+             self.image_map_ridges],
+        )
+        masked = encode_base64_image(image_path('map_noblobs_antialiased.png'))
+        assert masked == result.output.strip()
