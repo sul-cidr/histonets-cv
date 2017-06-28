@@ -4,18 +4,18 @@ histonets package
 Submodules
 ----------
 
-histonets.cli module
+histonets.api module
 --------------------
 
-.. automodule:: histonets.cli
+.. automodule:: histonets.api
     :members:
     :undoc-members:
     :show-inheritance:
 
-histonets.histonets module
---------------------------
+histonets.cli module
+--------------------
 
-.. automodule:: histonets.histonets
+.. automodule:: histonets.cli
     :members:
     :undoc-members:
     :show-inheritance:
