@@ -9,6 +9,7 @@ import locale
 import os
 import stat
 import sys
+import warnings
 
 import click
 import cv2
@@ -21,6 +22,7 @@ from requests.compat import urlparse, unquote
 from skimage import filters as skfilters
 from sklearn.cluster import MiniBatchKMeans
 from sklearn.preprocessing import minmax_scale
+from sklearn.utils.validation import DataConversionWarning
 
 
 # Constants
@@ -466,4 +468,6 @@ def parse_colors(ctx, param, value):
 
 def convert(image):
     """Convert a scikit-image binary image matrix to OpenCV"""
-    return minmax_scale(image, (0, 255)).astype(np.ubyte)
+    with warnings.catch_warnings(record=True):
+        warnings.filterwarnings('ignore', category=DataConversionWarning)
+        return minmax_scale(image, (0, 255)).astype(np.ubyte)

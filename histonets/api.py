@@ -1,14 +1,17 @@
 # -*- coding: utf-8 -*-
+import sys
+import warnings
 from collections import namedtuple
 
 import cv2
 import noteshrink
 import numpy as np
-import sys
 from imutils import object_detection
 from PIL import Image as PILImage
 from skimage import exposure
 from skimage import feature
+from skimage import morphology
+from skimage import filters
 
 from .utils import (
     convert,
@@ -301,3 +304,69 @@ def remove_blobs(image, min_area=0, max_area=sys.maxsize, threshold=128,
     mask = np.ones(mono_image.shape, np.uint8)
     cv2.drawContours(mask, contours, -1, 0, -1, lineType=method)
     return image, mask
+
+
+@image_as_array
+def binarize_image(image, method='li', **kwargs):
+    """Binarize image using one of the available methods: 'isodata',
+    'li', 'otsu', and 'sauvola'. Defaults to 'li'. Extra keyword arguments are
+    passed in as is to the corresponding sciki-image thresholding function.
+    For reference
+    Sezgin M. and Sankur B. (2004) "Survey over Image Thresholding Techniques
+    and Quantitative Performance Evaluation" Journal of Electronic Imaging,
+    13(1): 146-165 DOI:10.1117/1.1631315
+    """
+    if image.ndim != 2:
+        # image is not gray-scale
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    if np.unique(image).size == 2:
+        # image is already binary
+        return image
+    if method not in ('sauvola', 'isodata', 'otsu', 'li'):
+        method = 'li'
+    thresh_func = getattr(filters.thresholding, "threshold_{}".format(method))
+    threshold = thresh_func(image, **kwargs)
+    # OpenCV can't write black and white images using boolean values, it needs
+    # at least a 8bits 1-channel image ranged from 0 (black) to 255 (white)
+    return convert(image <= threshold)
+
+
+@image_as_array
+def skeletonize_image(image, method=None, dilation=None, binarization=None):
+    """Extract a 1 pixel wide representation of image by morphologically
+    thinning the white contiguous blobs (connected components).
+    If image is not black and white, a binarization process is applied
+    according to binarization, which can be 'sauvola', 'isodata', 'otsu',
+    'li' (default, ref: binarize()).
+
+    A process of dilation can also be applied by specifying the number
+    of pixels in dilate prior to extracting the skeleton.
+
+    The method for skeletonization can be 'medial', '3d', 'regular', or a
+    'combined' version of the three. Defaults to 'regular'.
+    A 'thin' operator is also available. For reference,
+    see http://scikit-image.org/docs/dev/auto_examples/edges/plot_skeleton.html
+    """
+    # scikit-image needs only 0's and 1's
+    mono_image = binarize_image(image, method=binarization) / 255
+    if dilation:
+        dilation_kernel = np.ones((dilation, dilation), np.uint8)
+        mono_image = cv2.morphologyEx(mono_image, cv2.MORPH_DILATE,
+                                      dilation_kernel)
+    with warnings.catch_warnings(record=True):
+        warnings.filterwarnings('ignore', category=UserWarning)
+        if method == '3d':
+            skeleton = morphology.skeletonize_3d(mono_image)
+        elif method == 'medial':
+            skeleton = morphology.medial_axis(mono_image,
+                                              return_distance=False)
+        elif method == 'thin':
+            skeleton = morphology.thin(mono_image)
+        elif method == 'combined':
+            skeleton = (morphology.skeletonize_3d(mono_image)
+                        | morphology.medial_axis(mono_image,
+                                                 return_distance=False)
+                        | morphology.skeletonize(mono_image))
+        else:
+            skeleton = morphology.skeletonize(mono_image)
+    return convert(skeleton)

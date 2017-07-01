@@ -425,3 +425,46 @@ class TestHistonets(unittest.TestCase):
         mask = cv2.imread(image_path('map_noblobs_antialiased.png'))
         removed = histonets.remove_blobs(image, 0, 100, method='antialiased')
         assert np.array_equal(mask, removed)
+
+    def test_binarize_already_binary_image(self):
+        image = cv2.imread(image_path('map_ridges_invert.png'), 0)
+        binarized = histonets.binarize_image(image)
+        assert np.array_equal(image, binarized)
+
+    def test_binarize_already_binary_image_with_method(self):
+        image = cv2.imread(image_path('map_ridges_invert.png'), 0)
+        binarized = histonets.binarize_image(image, method='otsu')
+        assert np.array_equal(image, binarized)
+
+    def test_binarize_default(self):
+        image = cv2.imread(image_path('map.png'))
+        image_binarized = cv2.imread(image_path('map_bw.png'), 0)
+        binarized = histonets.binarize_image(image)
+        assert np.array_equal(image_binarized, binarized)
+
+    def test_binarize_li(self):
+        image = cv2.imread(image_path('map.png'))
+        image_binarized = cv2.imread(image_path('map_bw.png'), 0)
+        binarized = histonets.binarize_image(image, method='li')
+        assert np.array_equal(image_binarized, binarized)
+
+    def test_binarize_with_wrong_method(self):
+        image = cv2.imread(image_path('map.png'))
+        image_binarized = cv2.imread(image_path('map_bw.png'), 0)
+        binarized = histonets.binarize_image(image, method='wrong')
+        assert np.array_equal(image_binarized, binarized)
+
+    def test_binarize_with_method(self):
+        image = cv2.imread(image_path('map.png'))
+        image_binarized = cv2.imread(image_path('map_otsu.png'), 0)
+        binarized = histonets.binarize_image(image, method='otsu')
+        assert np.array_equal(image_binarized, binarized)
+
+    def test_skeletonize(self):
+        image = cv2.imread(image_path('map.png'))
+        for dilation in (None, 13):
+            for method in ('3d', 'regular', 'thin', 'medial', 'combined'):
+                skeleton = histonets.skeletonize_image(image, method, dilation)
+                filename = 'map_sk_{}_d{}.png'.format(method, dilation or 0)
+                image_skeletonized = cv2.imread(image_path(filename), 0)
+                assert np.array_equal(skeleton, image_skeletonized)
