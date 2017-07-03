@@ -362,10 +362,11 @@ Select COLORS in IMAGE, turning the rest into black.
 
 Example::
 
-  histonets select "[225, 47, 90]" "[124, 230, 7]" -t 80  file://...
+  histonets select "[225, 47, 90]" "#8ad70e" -t 80  file://...
 
 - COLOR is a JSON string representing a color as a list of
-        its RGB components.
+        its RGB components or a hexadecimal string starting
+        with #.
 - IMAGE path to a local (file://) or remote (http://, https://) image file.
   A Base64 string can also be piped as input image.
 

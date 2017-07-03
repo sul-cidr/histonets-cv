@@ -298,11 +298,12 @@ def select(image, colors, tolerance, mask):
 
     Example::
 
-      histonets select "[225, 47, 90]" "[124, 230, 7]" -t 80  file://...
+      histonets select "[225, 47, 90]" "#8ad70e" -t 80  file://...
 
     \b
     - COLOR is a JSON string representing a color as a list of
-            its RGB components."""
+            its RGB components or a hexadecimal string starting
+            with #."""
     return select_colors(image, zip(*(colors, tolerance)), return_mask=mask)
 
 
