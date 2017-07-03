@@ -446,16 +446,33 @@ def match_template_mask(image, template, mask=None, method=None, sigma=0.33):
 
 
 def parse_colors(ctx, param, value):
-    """Callback to parse color values from a JSON list to a RGB tuple"""
+    """Callback to parse color values from a JSON list or hexadecimal string
+    to a RGB tuple.
+    """
     colors = []
     for color in value:
-        try:
-            r, g, b = json.loads(color)
-        except ValueError:
-            raise click.BadParameter(
-                "Malformed JSON: {}".format(color)
-            )
-        if all(0 <= c <= 255 for c in (r, g, b)):
+        if color.startswith('#'):
+            hex_color = color[1:]
+            hex_color_len = len(hex_color)
+            r, g, b = None, None, None
+            try:
+                if hex_color_len == 3:
+                    r, g, b = [int(''.join([l] * 2), 16) for l in hex_color]
+                elif hex_color_len == 6:
+                    r, g, b = list(map(lambda x: int(''.join(x), 16),
+                                       zip(*[iter(hex_color)] * 2)))
+            except ValueError:
+                raise click.BadParameter(
+                    "Malformed hex color: {}".format(color)
+                )
+        else:
+            try:
+                r, g, b = json.loads(color)
+            except ValueError:
+                raise click.BadParameter(
+                    "Malformed JSON or hexadecimal string: {}".format(color)
+                )
+        if r and g and b and all(0 <= c <= 255 for c in (r, g, b)):
             colors.append((r, g, b))
         else:
             raise click.BadParameter(

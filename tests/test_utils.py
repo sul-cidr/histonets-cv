@@ -324,6 +324,21 @@ main()
         self.assertRaises(click.BadParameter, utils.parse_colors,
                           None, None, colors)
 
+    def test_parse_colors_hex(self):
+        colors = ['#abc', '#aabbcc', '[123, 123, 123]']
+        obj = [(170, 187, 204), (170, 187, 204), (123, 123, 123)]
+        assert utils.parse_colors(None, None, colors) == obj
+
+    def test_parse_colors_hex_malformed(self):
+        colors = ['#aabbc', '[123,123,123]']
+        self.assertRaises(click.BadParameter, utils.parse_colors,
+                          None, None, colors)
+
+    def test_parse_colors_hex_invalid(self):
+        colors = ['#abt', '[123,123,123]']
+        self.assertRaises(click.BadParameter, utils.parse_colors,
+                          None, None, colors)
+
     def test_convert(self):
         array = np.array([[0, 1, 0], [1, 0, 0]])
         converted = np.array([[0, 255, 0], [255, 0, 0]])
