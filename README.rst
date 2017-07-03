@@ -46,6 +46,35 @@ Options:
 Commands
 --------
 
+binarize
+~~~~~~~~
+Usage: histonets [OPTIONS] [IMAGE]
+
+Binarize IMAGE using a thresholding method.
+
+Example::
+
+  histonets binarize -m otsu file://...
+
+
+- IMAGE path to a local (file://) or remote (http://, https://) image file.
+  A Base64 string can also be piped as input image.
+
+Options:
+
+  -m, --method [sauvola|isodata|otsu|li]
+                                  Thresholding method to obtain the binary
+                                  image. For reference, see http://scikit-imag
+                                  e.org/docs/dev/auto_examples/xx_applications
+                                  /plot_thresholding.html. Defaults to 'li'.
+  -o, --output FILENAME           File name to save the output. For images, if
+                                  the file extension is different than IMAGE,
+                                  a conversion is made. When not given,
+                                  standard output is used and images are
+                                  serialized using Base64; and to JSON
+                                  otherwise.
+  
+
 blobs
 ~~~~~
 Usage: histonets [OPTIONS] [IMAGE]
@@ -380,6 +409,49 @@ Options:
                                  conversion is made. When not given, standard
                                  output is used and images are serialized
                                  using Base64; and to JSON otherwise.
+  
+
+skeletonize
+~~~~~~~~~~~
+Usage: histonets [OPTIONS] [IMAGE]
+
+Extract the morphological skeleton of IMAGE. If the image is not black
+and white, it will be binarized using a binarization-method, which by
+default it's Li's algorithm (see the binarize command).
+The black and white image can also be thickened (dilated) by adjusting
+the dilation parameter before extracting the skeleton image.
+
+Example::
+
+  histonets skeletonize -m thin -d 0 -b otsu file://...
+
+
+- IMAGE path to a local (file://) or remote (http://, https://) image file.
+  A Base64 string can also be piped as input image.
+
+Options:
+
+  -m, --method [3d|combined|medial|regular|thin]
+                                  Method to extract the topological skeleton
+                                  of IMAGE. For reference, see http://scikit-i
+                                  mage.org/docs/dev/auto_examples/xx_applicati
+                                  ons/plot_thresholding.html. Defaults to a
+                                  'combined' approach of '3d', 'medial', and
+                                  'regular'.
+  -d, --dilation INTEGER RANGE    Dilation to thicken the binarized image
+                                  prior to perform skeletonization. Ranges
+                                  from 0 to 100. Defaults to 13.
+  -b, --binarization-method [sauvola|isodata|otsu|li]
+                                  Thresholding method to obtain the binary
+                                  image. For reference, see http://scikit-imag
+                                  e.org/docs/dev/auto_examples/xx_applications
+                                  /plot_thresholding.html. Defaults to 'li'.
+  -o, --output FILENAME           File name to save the output. For images, if
+                                  the file extension is different than IMAGE,
+                                  a conversion is made. When not given,
+                                  standard output is used and images are
+                                  serialized using Base64; and to JSON
+                                  otherwise.
   
 
 smooth

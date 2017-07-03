@@ -482,3 +482,55 @@ class TestHistonetsCli(unittest.TestCase):
         )
         masked = encode_base64_image(image_path('map_noblobs_antialiased.png'))
         assert masked == result.output.strip()
+
+    def test_binarize_default(self):
+        result = self.runner.invoke(
+            cli.binarize,
+            [self.image_map],
+        )
+        binarized = encode_base64_image(image_path('map_bw.png'))
+        assert binarized == result.output.strip()
+
+    def test_binarize_li(self):
+        result = self.runner.invoke(
+            cli.binarize,
+            ['-m', 'li',
+             self.image_map],
+        )
+        binarized = encode_base64_image(image_path('map_bw.png'))
+        assert binarized == result.output.strip()
+
+    def test_binarize_otsu(self):
+        result = self.runner.invoke(
+            cli.binarize,
+            ['-m', 'otsu',
+             self.image_map],
+        )
+        binarized = encode_base64_image(image_path('map_otsu.png'))
+        assert binarized == result.output.strip()
+
+    def test_skeletonize(self):
+        result = self.runner.invoke(
+            cli.skeletonize,
+            [self.image_map],
+        )
+        skeleton = encode_base64_image(image_path('map_sk_combined_d13.png'))
+        assert skeleton == result.output.strip()
+
+    def test_skeletonize_default(self):
+        result = self.runner.invoke(
+            cli.skeletonize,
+            ['-m', 'combined', '-b', 'li', '-d', 13,
+             self.image_map],
+        )
+        skeleton = encode_base64_image(image_path('map_sk_combined_d13.png'))
+        assert skeleton == result.output.strip()
+
+    def test_skeletonize_no_dilation_thin(self):
+        result = self.runner.invoke(
+            cli.skeletonize,
+            ['-m', 'thin', '-d', 0,
+             self.image_map],
+        )
+        skeleton = encode_base64_image(image_path('map_sk_thin_d0.png'))
+        assert skeleton == result.output.strip()

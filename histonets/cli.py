@@ -19,6 +19,7 @@ from .utils import (
 from .api import (
     adjust_brightness,
     adjust_contrast,
+    binarize_image,
     denoise_image,
     histogram_equalization,
     smooth_image,
@@ -28,6 +29,7 @@ from .api import (
     select_colors,
     remove_ridges,
     remove_blobs,
+    skeletonize_image,
 )
 
 
@@ -366,6 +368,61 @@ def blobs(image, minimum_area, maximum_area, threshold, connectivity, mask):
     method = "{}-connected".format(connectivity)
     return remove_blobs(image, minimum_area, maximum_area, threshold, method,
                         return_mask=mask)
+
+
+@main.command()
+@click.option('-m', '--method',
+              type=Choice(['sauvola', 'isodata', 'otsu', 'li']),
+              default='li',
+              help='Thresholding method to obtain the binary image. '
+                   'For reference, see http://scikit-image.org/docs/dev'
+                   '/auto_examples/xx_applications/plot_thresholding.html. '
+                   'Defaults to \'li\'.')
+@io_handler
+def binarize(image, method):
+    """Binarize IMAGE using a thresholding method.
+
+    Example::
+
+      histonets binarize -m otsu file://...
+    """
+    return binarize_image(image, method)
+
+
+@main.command()
+@click.option('-m', '--method',
+              type=Choice(['3d', 'combined', 'medial', 'regular', 'thin']),
+              default='combined',
+              help='Method to extract the topological skeleton of IMAGE. '
+                   'For reference, see http://scikit-image.org/docs/dev'
+                   '/auto_examples/xx_applications/plot_thresholding.html. '
+                   'Defaults to a \'combined\' approach of \'3d\', '
+                   '\'medial\', and \'regular\'.')
+@click.option('-d', '--dilation', type=click.IntRange(0, 100),
+              default=13,
+              help='Dilation to thicken the binarized image prior to perform '
+                   'skeletonization. '
+                   'Ranges from 0 to 100. Defaults to 13.')
+@click.option('-b', '--binarization-method',
+              type=Choice(['sauvola', 'isodata', 'otsu', 'li']),
+              default='li',
+              help='Thresholding method to obtain the binary image. '
+                   'For reference, see http://scikit-image.org/docs/dev'
+                   '/auto_examples/xx_applications/plot_thresholding.html. '
+                   'Defaults to \'li\'.')
+@io_handler
+def skeletonize(image, method, dilation, binarization_method):
+    """Extract the morphological skeleton of IMAGE. If the image is not black
+    and white, it will be binarized using a binarization-method, which by
+    default it's Li's algorithm (see the binarize command).
+    The black and white image can also be thickened (dilated) by adjusting
+    the dilation parameter before extracting the skeleton image.
+
+    Example::
+
+      histonets skeletonize -m thin -d 0 -b otsu file://...
+    """
+    return skeletonize_image(image, method, dilation, binarization_method)
 
 
 if __name__ == "__main__":
