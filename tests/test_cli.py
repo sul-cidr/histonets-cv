@@ -435,7 +435,7 @@ class TestHistonetsCli(unittest.TestCase):
             ['-w', 6, '-th', 160, '-d', 3,
              self.image_map]
         )
-        masked = encode_base64_image(image_path('map_noridges.png'))
+        masked = encode_base64_image(image_path('map_noridge.png'))
         assert masked == result.output.strip()
 
     def test_command_ridges_as_mask(self):
@@ -444,7 +444,7 @@ class TestHistonetsCli(unittest.TestCase):
             ['-w', 6, '-th', 160, '-d', 3, '-m',
              self.image_map]
         )
-        mask = encode_base64_image(image_path('map_ridges.png'))
+        mask = encode_base64_image(image_path('map_ridge.png'))
         assert mask == result.output.strip()
 
     def test_command_blobs(self):

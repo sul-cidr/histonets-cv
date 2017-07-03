@@ -259,7 +259,7 @@ def remove_ridges(image, width=6, threshold=160, dilation=3,
 
     A dilation kernel in pixels can be passed in to thicken the mask prior
     to being applied."""
-    gray_image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+    gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     # The value of sigma is calculated according to Steger's work:
     # An Unbiased Detector of Curvilinear Structures,
     # IEEE Transactions on Pattern Analysis and Machine Intelligence,
@@ -292,7 +292,7 @@ def remove_blobs(image, min_area=0, max_area=sys.maxsize, threshold=128,
         method = cv2.LINE_AA
     else:  # 8-connected
         method = cv2.LINE_8
-    gray_image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+    gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     _, mono_image = cv2.threshold(gray_image, threshold, 255, 0)
     _, all_contours, _ = cv2.findContours(mono_image, cv2.RETR_LIST,
                                           cv2.CHAIN_APPROX_SIMPLE)
