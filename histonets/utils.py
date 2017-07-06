@@ -474,7 +474,7 @@ def parse_colors(ctx, param, value):
                 raise click.BadParameter(
                     "Malformed JSON or hexadecimal string: {}".format(color)
                 )
-        if r and g and b and all(0 <= c <= 255 for c in (r, g, b)):
+        if all(isinstance(c, int) and 0 <= c <= 255 for c in (r, g, b)):
             colors.append((r, g, b))
         else:
             raise click.BadParameter(
