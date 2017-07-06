@@ -310,8 +310,8 @@ main()
             assert np.array_equal(test_matches, matches)
 
     def test_parse_colors(self):
-        colors = ['[1,2,3]', '[123,123,123]']
-        obj = [(1, 2, 3), (123, 123, 123)]
+        colors = ['[0,1,2]', '[123,123,123]']
+        obj = [(0, 1, 2), (123, 123, 123)]
         assert utils.parse_colors(None, None, colors) == obj
 
     def test_parse_colors_malformed(self):
