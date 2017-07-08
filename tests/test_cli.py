@@ -21,32 +21,33 @@ from click.testing import CliRunner
 from histonets import cli
 
 
-def image_path(img):
-    return os.path.join('tests', 'images', img)
+def fixtures_path(file):
+    return os.path.abspath(os.path.join('tests', 'fixtures', file))
 
 
-def encode_base64_image(img_path):
-    with open(img_path, 'rb') as image:
-        return base64.b64encode(image.read()).decode()
+def encode_base64(file_path):
+    with open(file_path, 'rb') as file:
+        return base64.b64encode(file.read()).decode()
 
 
 class TestHistonetsCli(unittest.TestCase):
     def setUp(self):
         self.image_url = 'http://httpbin.org/image/jpeg'
-        self.image_file = 'file://' + image_path('test.png')
+        self.image_file = 'file://' + fixtures_path('test.png')
         self.image_404 = 'file:///not_found.png'
-        self.image_jpg = image_path('test.jpg')
-        self.image_png = image_path('test.png')
-        self.image_b64 = image_path('test.b64')
-        self.image_5050_b64 = image_path('test_5050.b64')
-        self.image_template = 'file://' + image_path('template.png')
-        self.image_template_h = 'file://' + image_path('template_h.png')
-        self.image_template_v = 'file://' + image_path('template_v.png')
-        self.image_template_b = 'file://' + image_path('template_b.png')
-        self.image_template_m = 'file://' + image_path('template_m.png')
-        self.image_posterized = 'file://' + image_path('poster_kmeans4.png')
-        self.image_map = 'file://' + image_path('map.png')
-        self.image_map_ridges = 'file://' + image_path('map_ridges_invert.png')
+        self.image_jpg = fixtures_path('test.jpg')
+        self.image_png = fixtures_path('test.png')
+        self.image_b64 = fixtures_path('test.b64')
+        self.image_5050_b64 = fixtures_path('test_5050.b64')
+        self.image_template = 'file://' + fixtures_path('template.png')
+        self.image_template_h = 'file://' + fixtures_path('template_h.png')
+        self.image_template_v = 'file://' + fixtures_path('template_v.png')
+        self.image_template_b = 'file://' + fixtures_path('template_b.png')
+        self.image_template_m = 'file://' + fixtures_path('template_m.png')
+        self.image_posterized = 'file://' + fixtures_path('poster_kmeans4.png')
+        self.image_map = 'file://' + fixtures_path('map.png')
+        self.image_map_ridges = ('file://'
+                                 + fixtures_path('map_ridges_invert.png'))
         self.tmp_jpg = os.path.join(tempfile.gettempdir(), 'test.jpg')
         self.tmp_png = os.path.join(tempfile.gettempdir(), 'test.png')
         self.tmp_tiff = os.path.join(tempfile.gettempdir(), 'test.tiff')
@@ -159,8 +160,8 @@ class TestHistonetsCli(unittest.TestCase):
         assert 'Invalid value for "value"' in result.output
 
     def test_contrast_integer(self):
-        test_contrast_image = encode_base64_image(
-            image_path('test_low_contrast.png')
+        test_contrast_image = encode_base64(
+            fixtures_path('test_low_contrast.png')
         )
         result = self.runner.invoke(cli.contrast, ['50', self.image_file])
         assert test_contrast_image == result.output.rstrip()
@@ -170,8 +171,8 @@ class TestHistonetsCli(unittest.TestCase):
         assert 'Invalid value for "value"' in result.output
 
     def test_brightness_integer(self):
-        test_brightness_image = encode_base64_image(
-            image_path('test_brightness_darken.png')
+        test_brightness_image = encode_base64(
+            fixtures_path('test_brightness_darken.png')
         )
         result = self.runner.invoke(cli.brightness, ['50', self.image_file])
         assert test_brightness_image == result.output.rstrip()
@@ -181,8 +182,8 @@ class TestHistonetsCli(unittest.TestCase):
         assert 'Invalid value for "value"' in result.output
 
     def test_smooth_integer(self):
-        test_smooth_image = encode_base64_image(
-            image_path('smooth50.png')
+        test_smooth_image = encode_base64(
+            fixtures_path('smooth50.png')
         )
         result = self.runner.invoke(cli.smooth, ['50', self.image_file])
         assert test_smooth_image == result.output.rstrip()
@@ -192,8 +193,8 @@ class TestHistonetsCli(unittest.TestCase):
         assert 'Invalid value for "value"' in result.output
 
     def test_histogram_equalization_integer(self):
-        test_hist_image = encode_base64_image(
-            image_path('test_hist_eq5.png')
+        test_hist_image = encode_base64(
+            fixtures_path('test_hist_eq5.png')
         )
         result = self.runner.invoke(cli.equalize, ['50', self.image_file])
         assert test_hist_image == result.output.rstrip()
@@ -203,8 +204,8 @@ class TestHistonetsCli(unittest.TestCase):
         assert 'Invalid value for "value"' in result.output
 
     def test_denoise_integer(self):
-        test_denoise_image = encode_base64_image(
-            image_path('denoised10.png')
+        test_denoise_image = encode_base64(
+            fixtures_path('denoised10.png')
         )
         result = self.runner.invoke(cli.denoise, ['10', self.image_file])
         assert test_denoise_image == result.output.rstrip()
@@ -232,8 +233,8 @@ class TestHistonetsCli(unittest.TestCase):
         ])
         result = self.runner.invoke(cli.pipeline, [actions, self.image_file])
         assert 'Error' not in result.output
-        test_pipeline_full = encode_base64_image(
-            image_path('test_full_pipeline.png')
+        test_pipeline_full = encode_base64(
+            fixtures_path('test_full_pipeline.png')
         )
         assert test_pipeline_full == result.output.strip()
 
@@ -262,8 +263,8 @@ class TestHistonetsCli(unittest.TestCase):
         )
         assert 'Error' not in result.output
         assert len(result.output.strip()) > 0
-        test_posterize_image = encode_base64_image(
-            image_path('poster_linear4.png')
+        test_posterize_image = encode_base64(
+            fixtures_path('poster_linear4.png')
         )
         assert test_posterize_image == result.output.strip()
 
@@ -274,8 +275,8 @@ class TestHistonetsCli(unittest.TestCase):
         )
         assert 'Error' not in result.output
         assert len(result.output.strip()) > 0
-        test_posterize_image = encode_base64_image(
-            image_path('poster_linear4.png')
+        test_posterize_image = encode_base64(
+            fixtures_path('poster_linear4.png')
         )
         assert test_posterize_image != result.output.strip()
 
@@ -283,8 +284,8 @@ class TestHistonetsCli(unittest.TestCase):
         result = self.runner.invoke(cli.clean, [self.image_file])
         assert 'Error' not in result.output
         assert len(result.output.strip()) > 0
-        test_clean = encode_base64_image(image_path('clean.png'))
-        image = encode_base64_image(self.image_png)
+        test_clean = encode_base64(fixtures_path('clean.png'))
+        image = encode_base64(self.image_png)
         assert abs(np.ceil(len(result.output.strip()) / 1e5)
                    - np.ceil(len(test_clean) / 1e5)) <= 2
         assert len(test_clean) < len(image)
@@ -415,7 +416,7 @@ class TestHistonetsCli(unittest.TestCase):
              json.dumps((172, 99, 76)), '-t', 0,
              self.image_posterized]
         )
-        masked = encode_base64_image(image_path('masked_colors.png'))
+        masked = encode_base64(fixtures_path('masked_colors.png'))
         assert masked == result.output.strip()
 
     def test_command_select_colors_as_mask(self):
@@ -426,7 +427,7 @@ class TestHistonetsCli(unittest.TestCase):
              '--mask',
              self.image_posterized]
         )
-        masked = encode_base64_image(image_path('masked_bw.png'))
+        masked = encode_base64(fixtures_path('masked_bw.png'))
         assert masked == result.output.strip()
 
     def test_command_ridges(self):
@@ -435,7 +436,7 @@ class TestHistonetsCli(unittest.TestCase):
             ['-w', 6, '-th', 160, '-d', 3,
              self.image_map]
         )
-        masked = encode_base64_image(image_path('map_noridge.png'))
+        masked = encode_base64(fixtures_path('map_noridge.png'))
         assert masked == result.output.strip()
 
     def test_command_ridges_as_mask(self):
@@ -444,7 +445,7 @@ class TestHistonetsCli(unittest.TestCase):
             ['-w', 6, '-th', 160, '-d', 3, '-m',
              self.image_map]
         )
-        mask = encode_base64_image(image_path('map_ridge.png'))
+        mask = encode_base64(fixtures_path('map_ridge.png'))
         assert mask == result.output.strip()
 
     def test_command_blobs(self):
@@ -453,7 +454,7 @@ class TestHistonetsCli(unittest.TestCase):
             ['-min', 0, '-max', 100,
              self.image_map_ridges],
         )
-        masked = encode_base64_image(image_path('map_noblobs8.png'))
+        masked = encode_base64(fixtures_path('map_noblobs8.png'))
         assert masked == result.output.strip()
 
     def test_command_blobs_4connected(self):
@@ -462,7 +463,7 @@ class TestHistonetsCli(unittest.TestCase):
             ['-min', 0, '-max', 100, '-c', 4,
              self.image_map_ridges],
         )
-        masked = encode_base64_image(image_path('map_noblobs4.png'))
+        masked = encode_base64(fixtures_path('map_noblobs4.png'))
         assert masked == result.output.strip()
 
     def test_command_blobs_8connected(self):
@@ -471,7 +472,7 @@ class TestHistonetsCli(unittest.TestCase):
             ['-min', 0, '-max', 100, '-c', 8,
              self.image_map_ridges],
         )
-        masked = encode_base64_image(image_path('map_noblobs8.png'))
+        masked = encode_base64(fixtures_path('map_noblobs8.png'))
         assert masked == result.output.strip()
 
     def test_command_blobs_antialiased(self):
@@ -480,7 +481,7 @@ class TestHistonetsCli(unittest.TestCase):
             ['-min', 0, '-max', 100, '-c', 16,
              self.image_map_ridges],
         )
-        masked = encode_base64_image(image_path('map_noblobs_antialiased.png'))
+        masked = encode_base64(fixtures_path('map_noblobs_antialiased.png'))
         assert masked == result.output.strip()
 
     def test_binarize_default(self):
@@ -488,7 +489,7 @@ class TestHistonetsCli(unittest.TestCase):
             cli.binarize,
             [self.image_map],
         )
-        binarized = encode_base64_image(image_path('map_bw.png'))
+        binarized = encode_base64(fixtures_path('map_bw.png'))
         assert binarized == result.output.strip()
 
     def test_binarize_li(self):
@@ -497,7 +498,7 @@ class TestHistonetsCli(unittest.TestCase):
             ['-m', 'li',
              self.image_map],
         )
-        binarized = encode_base64_image(image_path('map_bw.png'))
+        binarized = encode_base64(fixtures_path('map_bw.png'))
         assert binarized == result.output.strip()
 
     def test_binarize_otsu(self):
@@ -506,7 +507,7 @@ class TestHistonetsCli(unittest.TestCase):
             ['-m', 'otsu',
              self.image_map],
         )
-        binarized = encode_base64_image(image_path('map_otsu.png'))
+        binarized = encode_base64(fixtures_path('map_otsu.png'))
         assert binarized == result.output.strip()
 
     def test_skeletonize(self):
@@ -514,7 +515,7 @@ class TestHistonetsCli(unittest.TestCase):
             cli.skeletonize,
             [self.image_map],
         )
-        skeleton = encode_base64_image(image_path('map_sk_combined_d13.png'))
+        skeleton = encode_base64(fixtures_path('map_sk_combined_d13.png'))
         assert skeleton == result.output.strip()
 
     def test_skeletonize_default(self):
@@ -523,7 +524,7 @@ class TestHistonetsCli(unittest.TestCase):
             ['-m', 'combined', '-b', 'li', '-d', 13,
              self.image_map],
         )
-        skeleton = encode_base64_image(image_path('map_sk_combined_d13.png'))
+        skeleton = encode_base64(fixtures_path('map_sk_combined_d13.png'))
         assert skeleton == result.output.strip()
 
     def test_skeletonize_no_dilation_thin(self):
@@ -532,5 +533,5 @@ class TestHistonetsCli(unittest.TestCase):
             ['-m', 'thin', '-d', 0,
              self.image_map],
         )
-        skeleton = encode_base64_image(image_path('map_sk_thin_d0.png'))
+        skeleton = encode_base64(fixtures_path('map_sk_thin_d0.png'))
         assert skeleton == result.output.strip()
