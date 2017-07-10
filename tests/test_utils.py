@@ -27,17 +27,25 @@ from sklearn.datasets.samples_generator import make_blobs
 from histonets import utils
 
 
-def image_path(img):
-    return os.path.join('tests', 'images', img)
+def fixtures_path(file, relative=False):
+    relative_path = os.path.join('tests', 'fixtures', file)
+    if not relative:
+        return os.path.abspath(relative_path)
+    else:
+        return relative_path
 
 
 class TestHistonetsUtils(unittest.TestCase):
     def setUp(self):
-        self.image_png = image_path('test.png')
+        self.image_png = fixtures_path('test.png')
         self.image_file = 'file://' + self.image_png
-        self.image_5050_b64 = image_path('test_5050.b64')
+        self.image_5050_b64 = fixtures_path('test_5050.b64')
         self.image_404 = 'file:///not_found.png'
-        self.image_clean = 'file://' + image_path('clean1.png')
+        self.image_clean = fixtures_path('clean1.png', relative=True)
+        self.json = fixtures_path('file.json')
+        self.json_gz = fixtures_path('file.json.gz')
+        self.json_gz_file = 'file://' + fixtures_path('file.json.gz')
+        self.json_content = {"key1": "value1", "key2": 2}
 
     def test_get_images(self):
         images = utils.Image.get_images([self.image_file, self.image_file])
@@ -90,6 +98,11 @@ class TestHistonetsUtils(unittest.TestCase):
         string = 'Ñoño'
         encoding = locale.getpreferredencoding(False)
         assert utils.local_encode(string) == string.encode(encoding)
+
+    def test_local_decoding(self):
+        encoding = locale.getpreferredencoding(False)
+        byte = 'Ñoño'.encode(encoding)
+        assert utils.local_decode(byte) == byte.decode(encoding)
 
     def test_parse_pipeline_json(self):
         string = ('[{"action": "brightness", "options": {"value": 150}},'
@@ -274,7 +287,7 @@ main()
 
     def test_match_template_mask(self):
         image = utils.Image.get_images([self.image_file])[0].image
-        template = cv2.imread(image_path('template_m.png'))
+        template = cv2.imread(fixtures_path('template_m.png'))
         image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         template = cv2.cvtColor(template, cv2.COLOR_BGR2GRAY)
         exclude = [
@@ -355,3 +368,38 @@ main()
     def test_click_choice(self):
         choice = utils.Choice([1, 2, 3])
         assert choice.get_metavar(None) == '[1|2|3]'
+
+    def test_stream(self):
+        stream = utils.Stream().convert(self.json)
+        content = json.loads(stream)
+        assert content == self.json_content
+
+    def test_stream_gz(self):
+        stream = utils.Stream().convert(self.json_gz)
+        content = json.loads(stream)
+        assert content == self.json_content
+
+    def test_stream_gz_using_protocol(self):
+        stream = utils.Stream().convert(self.json_gz_file)
+        content = json.loads(stream)
+        assert content == self.json_content
+
+    def test_stream_bad_scheme(self):
+        with self.assertRaises(click.BadParameter):
+            utils.Stream().convert('ftp://' + self.json)
+
+    def test_jsonstream(self):
+        content = utils.JSONStream().convert(self.json)
+        assert content == self.json_content
+
+    def test_jsonstream_gz(self):
+        content = utils.JSONStream().convert(self.json_gz)
+        assert content == self.json_content
+
+    def test_jsonstream_gz_using_protocol(self):
+        content = utils.JSONStream().convert(self.json_gz_file)
+        assert content == self.json_content
+
+    def test_jsonstream_raw(self):
+        content = utils.JSONStream().convert(json.dumps(self.json_content))
+        assert content == self.json_content

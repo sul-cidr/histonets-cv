@@ -1,24 +1,21 @@
 # -*- coding: utf-8 -*-
 import base64
 import collections
-import errno
+import gzip
 import imghdr
-import io
 import json
 import locale
 import os
-import stat
 import sys
 import warnings
+from urllib.parse import urlparse
+from urllib.request import urlopen
 
 import click
 import cv2
 import noteshrink
 import numpy as np
-import requests
 from click.utils import get_os_args
-from requests.adapters import BaseAdapter
-from requests.compat import urlparse, unquote
 from skimage import filters as skfilters
 from sklearn.cluster import MiniBatchKMeans
 from sklearn.preprocessing import minmax_scale
@@ -30,63 +27,53 @@ RAW = 'raw'
 IMAGE = 'image'
 
 
-class FileAdapter(BaseAdapter):
-    def send(self, request, **kwargs):
-        """ Adapted from https://github.com/dashea/requests-file:
-        Wraps a file, described in request, in a Response object.
+class Stream(click.ParamType):
+    """Click option type for http/https/file inputs
 
-            :param request: The PreparedRequest` being "sent".
-            :returns: a Response object containing the file
-        """
-        if request.method not in ('GET', 'HEAD'):
-            error_msg = "Invalid request method {}".format(request.method)
-            raise ValueError(error_msg)
-        url_parts = urlparse(request.url)
-        resp = requests.Response()
-        try:
-            path_parts = []
-            if url_parts.netloc:
-                # Local files are interpreted as netloc
-                path_parts = [unquote(p) for p in url_parts.netloc.split('/')]
-            path_parts += [unquote(p) for p in url_parts.path.split('/')]
-            while path_parts and not path_parts[0]:
-                path_parts.pop(0)
-            if any(os.sep in p for p in path_parts):
-                raise IOError(errno.ENOENT, os.strerror(errno.ENOENT))
-            if path_parts and (path_parts[0].endswith('|') or
-                               path_parts[0].endswith(':')):
-                path_drive = path_parts.pop(0)
-                if path_drive.endswith('|'):
-                    path_drive = path_drive[:-1] + ':'
-                while path_parts and not path_parts[0]:
-                    path_parts.pop(0)
-            else:
-                path_drive = ''
-            path = os.path.join(path_drive, *path_parts)
-            if path_drive and not os.path.splitdrive(path):
-                path = os.path.join(path_drive, *path_parts)
-            resp.raw = io.open(path, 'rb')
-            resp.raw.release_conn = resp.raw.close
-        except IOError as e:
-            if e.errno == errno.EACCES:
-                resp.status_code = requests.codes.forbidden
-            elif e.errno == errno.ENOENT:
-                resp.status_code = requests.codes.not_found
-            else:
-                resp.status_code = requests.codes.bad_request
-            resp_str = str(e).encode(locale.getpreferredencoding(False))
-            resp.raw = io.BytesIO(resp_str)
-            resp.headers['Content-Length'] = len(resp_str)
-            resp.raw.release_conn = resp.raw.close
+    Based on https://github.com/moshe/click-stream
+    """
+    name = 'stream'
+    SUPPORTED_SCHEMES = ('http', 'https', 'file')
+
+    def __init__(self, mode='r'):
+        self.mode = mode
+
+    def convert(self, value, param=None, ctx=None):
+        is_compressed = value.endswith('.gz')
+        is_binary = self.mode.endswith('b')
+        if os.path.exists(value):
+            local_mode = 'rb' if is_compressed else self.mode
+            file_obj = open(value, local_mode)
         else:
-            resp.status_code = requests.codes.ok
-            resp_stat = os.fstat(resp.raw.fileno())
-            if stat.S_ISREG(resp_stat.st_mode):
-                resp.headers['Content-Length'] = resp_stat.st_size
-        return resp
+            url = urlparse(value)
+            if url.scheme not in self.SUPPORTED_SCHEMES:
+                raise click.BadParameter(
+                    'Scheme \'{}\' not supported'.format(url.scheme))
+            else:
+                file_obj = urlopen(value)
+        if is_compressed:
+            with gzip.GzipFile(mode=self.mode, fileobj=file_obj) as resource:
+                content = resource.read()
+                if not is_binary:
+                    content = local_decode(content)
+        else:
+            content = file_obj.read()
+        file_obj.close()
+        return content
 
-    def close(self):
-        pass
+
+class JSONStream(Stream):
+    """JSON Stream Click option type to handle and decode JSON input and files
+    coming (compressed or not) from the Internet (http:// and https://) or
+    locally (file://, absolute, or relative paths).
+    """
+
+    def convert(self, value, param=None, ctx=None):
+        try:
+            return json.loads(value)
+        except ValueError:
+            content = super().convert(value, param, ctx)
+            return json.loads(content)
 
 
 class Choice(click.Choice):
@@ -127,8 +114,6 @@ class Image(object):
                 content = base64.b64decode(local_encode(value))
                 images.append(cls(content))
         else:
-            session = requests.Session()
-            session.mount('file://', FileAdapter())
             for value in values:
                 if isinstance(value, cls):
                     image = value
@@ -136,17 +121,11 @@ class Image(object):
                     image = cls(image=value)
                 else:
                     try:
-                        response = session.get(value)
-                        if response.status_code == requests.codes.ok:
-                            content = response.content
-                        else:
-                            content = None
-                        response.close()
+                        content = Stream(mode='rb').convert(value)
                     except Exception as e:
                         raise click.BadParameter(e)
                     image = cls(content)
                 images.append(image)
-            session.close()
         return images
 
 
@@ -333,13 +312,23 @@ def pair_options_to_argument(argument, options, args=None, args_slice=None):
 
 
 def local_encode(value):
-    """Encode a string to bytes by using the sysmte preferred encoding.
+    """Encode a string to bytes by using the system preferred encoding.
     Defaults to utf8 otherwise."""
     encoding = locale.getpreferredencoding(False)
     try:
         return value.encode(encoding)
     except LookupError:
         return value.encode('utf8', errors='replace')
+
+
+def local_decode(value):
+    """Decode bytes into a string by using the system preferred encoding.
+    Defaults to utf8 otherwise."""
+    encoding = locale.getpreferredencoding(False)
+    try:
+        return value.decode(encoding)
+    except LookupError:
+        return value.decode('utf8', errors='replace')
 
 
 def parse_pipeline_json(ctx, param, value):
