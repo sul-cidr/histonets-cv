@@ -195,6 +195,13 @@ class TestHistonets(unittest.TestCase):
         assert (len(utils.get_color_histogram(test_image))
                 == len(utils.get_color_histogram(reduce_image)))
 
+    def test_posterization_default_method(self):
+        image = self.image
+        test_image = histonets.color_reduction(image, 4, 'invalid_method')
+        reduce_image = histonets.color_reduction(image, 4, 'kmeans')
+        assert (len(utils.get_color_histogram(test_image))
+                == len(utils.get_color_histogram(reduce_image)))
+
     def test_auto_clean(self):
         image = self.image
         test_image = cv2.imread(fixtures_path('clean.png'))
@@ -232,6 +239,47 @@ class TestHistonets(unittest.TestCase):
         )
         assert (len(utils.get_color_histogram(test_image))
                 == len(utils.get_color_histogram(reduce_image)))
+
+    def test_auto_clean_section_with_palette(self):
+        image = cv2.imread(fixtures_path('icon.png'))
+        palette = utils.get_palette(image[:, :, ::-1], n_colors=2)
+        clean_image = histonets.auto_clean(
+            image, colors=2, sample_fraction=100, palette=palette)
+        section = cv2.imread(fixtures_path('icon_section.png'))
+        clean_section = histonets.auto_clean(
+            section, colors=2, sample_fraction=100, palette=palette)
+
+        clean_image_colors = sorted(utils.get_color_histogram(
+            clean_image[:, :, ::-1]).keys())
+        section_colors = sorted(utils.get_color_histogram(
+            section[:, :, ::-1]).keys())
+        clean_section_colors = sorted(utils.get_color_histogram(
+            clean_section[:, :, ::-1]).keys())
+
+        assert section_colors != clean_section_colors
+        assert clean_section_colors == clean_image_colors
+
+    def test_auto_clean_with_palette(self):
+        image = cv2.imread(fixtures_path('map.png'))
+        palette = utils.get_palette(image[:, :, ::-1], n_colors=8)
+        distances = []
+        for _ in range(10):
+            clean1 = histonets.auto_clean(
+                image, colors=8, sample_fraction=100, palette=palette
+            )
+            clean2 = histonets.auto_clean(
+                image, colors=8, sample_fraction=100
+            )
+            hist1 = utils.get_color_histogram(clean1)
+            hist1_colors = np.asarray(sorted(hist1.keys()))
+            hist2 = utils.get_color_histogram(clean2)
+            hist2_colors = np.asarray(sorted(hist2.keys()))
+            distances.append(int(np.linalg.norm(hist1_colors - hist2_colors)))
+        distance = np.array(distances).mean()
+        # threshold value is experimentally set as the highest distance
+        # after running the comparison 10k times
+        threshold = 298  # 976 in L*a*b colorspace
+        assert distance <= threshold
 
     def test_match_templates(self):
         image = self.image
@@ -469,3 +517,35 @@ class TestHistonets(unittest.TestCase):
                 filename = 'map_sk_{}_d{}.png'.format(method, dilation or 0)
                 image_skeletonized = cv2.imread(fixtures_path(filename), 0)
                 assert np.array_equal(skeleton, image_skeletonized)
+
+    def test_palette_from_histogram(self):
+        histogram = {
+            (10, 191, 147): 1000,
+            (99, 86, 101): 1000,
+            (197, 92, 145): 1000,
+        }
+        palette = histonets.histogram_palette(histogram)
+        assert (sorted([tuple(c) for c in palette.tolist()])
+                == sorted(histogram.keys()))
+
+    def test_palette_from_histogram_with_params(self):
+        histogram = {
+            (10, 191, 147): 10,
+            (99, 86, 101): 10,
+            (197, 92, 145): 10,
+        }
+        palette = histonets.histogram_palette(histogram, n_colors=10,
+                                              sample_fraction=100)
+        assert (sorted([tuple(c) for c in palette.tolist()])
+                == sorted(histogram.keys()))
+
+    def test_palette_from_histogram_sampling(self):
+        histogram = {
+            (10, 191, 147): 100,
+            (99, 86, 101): 100,
+            (197, 92, 145): 1,
+        }
+        palette = histonets.histogram_palette(histogram, n_colors=3,
+                                              sample_fraction=None)
+        assert (sorted([tuple(c) for c in palette.tolist()])
+                == sorted(histogram.keys()))

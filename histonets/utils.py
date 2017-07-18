@@ -8,6 +8,7 @@ import locale
 import os
 import sys
 import warnings
+from itertools import chain
 from urllib.parse import urlparse
 from urllib.request import urlopen
 
@@ -38,27 +39,30 @@ class Stream(click.ParamType):
     def __init__(self, mode='r'):
         self.mode = mode
 
-    def convert(self, value, param=None, ctx=None):
-        is_compressed = value.endswith('.gz')
-        is_binary = self.mode.endswith('b')
-        if os.path.exists(value):
-            local_mode = 'rb' if is_compressed else self.mode
-            file_obj = open(value, local_mode)
+    def convert(self, param=None, ctx=None, value=None):
+        if not value:
+            content = sys.stdin.readlines()
         else:
-            url = urlparse(value)
-            if url.scheme not in self.SUPPORTED_SCHEMES:
-                raise click.BadParameter(
-                    'Scheme \'{}\' not supported'.format(url.scheme))
+            is_compressed = value.endswith('.gz')
+            is_binary = self.mode.endswith('b')
+            if os.path.exists(value):
+                local_mode = 'rb' if is_compressed else self.mode
+                file_obj = open(value, local_mode)
             else:
-                file_obj = urlopen(value)
-        if is_compressed:
-            with gzip.GzipFile(mode=self.mode, fileobj=file_obj) as resource:
-                content = resource.read()
-                if not is_binary:
-                    content = local_decode(content)
-        else:
-            content = file_obj.read()
-        file_obj.close()
+                url = urlparse(value)
+                if url.scheme not in self.SUPPORTED_SCHEMES:
+                    raise click.BadParameter(
+                        'Scheme \'{}\' not supported'.format(url.scheme))
+                else:
+                    file_obj = urlopen(value)
+            if is_compressed:
+                with gzip.GzipFile(mode=self.mode, fileobj=file_obj) as file:
+                    content = file.read()
+                    if not is_binary:
+                        content = local_decode(content)
+            else:
+                content = file_obj.read()
+            file_obj.close()
         return content
 
 
@@ -68,11 +72,11 @@ class JSONStream(Stream):
     locally (file://, absolute, or relative paths).
     """
 
-    def convert(self, value, param=None, ctx=None):
+    def convert(self, param=None, ctx=None, value=None):
         try:
             return json.loads(value)
         except ValueError:
-            content = super().convert(value, param, ctx)
+            content = super().convert(param=param, ctx=ctx, value=value)
             return json.loads(content)
 
 
@@ -121,7 +125,7 @@ class Image(object):
                     image = cls(image=value)
                 else:
                     try:
-                        content = Stream(mode='rb').convert(value)
+                        content = Stream(mode='rb').convert(value=value)
                     except Exception as e:
                         raise click.BadParameter(e)
                     image = cls(content)
@@ -183,59 +187,90 @@ def parse_jsons(ctx, param, value):
         raise click.BadParameter("Polygon JSON malformed.")
 
 
-def io_handler(f, *args, **kwargs):
-    """Decorator to handle the 'image' argument and the 'output' option"""
+def io_handler(input=None, *args, **kwargs):
+    """Decorator to handle the 'input' argument and the 'output' option.
+    If input is other than 'image', it is considered to be a JSON file or
+    URL. Defaults to 'image'."""
+    is_callable = callable(input)
 
-    def _get_image(ctx, param, value):
-        """Helper to process only the first input image"""
-        try:
-            return Image.get_images([value])[0]  # return only first Image
-        except Exception as e:
-            raise click.BadParameter(e)
+    def decorator(f, *args, **kwargs):
+        """Auxiliary decorator to allow io_handler be used with or without
+        parameters"""
 
-    @click.argument('image', required=False, callback=_get_image)
-    @click.option('--output', '-o', type=click.File('wb'),
-                  help='File name to save the output. For images, if '
-                       'the file extension is different than IMAGE, '
-                       'a conversion is made. When not given, standard '
-                       'output is used and images are serialized using '
-                       'Base64; and to JSON otherwise.')
-    def wrapper(*args, **kwargs):
-        image = kwargs.get('image')
-        output = kwargs.pop('output', None)
-        ctx = click.get_current_context()
-        result = ctx.invoke(f, *args, **kwargs)
-        if output == RAW:
-            return result
-        result_is_image = isinstance(result, np.ndarray)
-        if result_is_image:
-            if output and '.' in output.name:
-                image_format = output.name.split('.')[-1]
-            else:
-                image_format = image.format
+        def _get_image(ctx, param, value):
+            """Helper to process only the first input image"""
             try:
-                _, result = cv2.imencode(".{}".format(image_format), result)
-            except cv2.error:
-                raise click.BadParameter('Image format output not supported')
-        else:
-            result = local_encode(json.dumps(result))
-        if output is not None:
-            output.write(result)
-            output.close()
-        else:
-            if result_is_image:
-                result = base64.b64encode(result)
-            click.echo(result)
+                return Image.get_images([value])[0]  # return only first Image
+            except Exception as e:
+                raise click.BadParameter(e)
 
-    # needed for click to work
-    wrapper.__name__ = f.__name__
-    new_line = '' if '\b' in f.__doc__ else '\b\n\n'
-    wrapper.__doc__ = (
-        """{}{}\n    - IMAGE path to a local (file://) or """
-        """remote (http://, https://) image file.\n"""
-        """      A Base64 string can also be piped as input image.""".format(
-            f.__doc__, new_line))
-    return wrapper
+        if not is_callable and input != 'image':
+            input_dec = click.argument(input, required=False,
+                                       callback=JSONStream())
+        else:
+            input_dec = click.argument('image', required=False,
+                                       callback=_get_image)
+
+        @input_dec
+        @click.option('--output', '-o', type=click.File('wb'),
+                      help='File name to save the output. For images, if '
+                           'the file extension is different than IMAGE, '
+                           'a conversion is made. When not given, standard '
+                           'output is used and images are serialized using '
+                           'Base64; and to JSON otherwise.')
+        def wrapper(*args, **kwargs):
+            input_param = kwargs.get(input)
+            output_param = kwargs.pop('output', None)
+            ctx = click.get_current_context()
+            result = ctx.invoke(f, *args, **kwargs)
+            if output_param == RAW:
+                return result
+            result_is_image = isinstance(result, np.ndarray)
+            if result_is_image:
+                if output_param and '.' in output_param.name:
+                    image_format = output_param.name.split('.')[-1]
+                elif getattr(input_param, 'format', None):
+                    image_format = input_param.format
+                else:
+                    image_format = 'png'  # default
+                try:
+                    _, result = cv2.imencode(".{}".format(image_format),
+                                             result)
+                except cv2.error:
+                    raise click.BadParameter(
+                        'Image format output not supported')
+            else:
+                result = local_encode(json.dumps(result))
+            if output_param is not None:
+                output_param.write(result)
+                output_param.close()
+            else:
+                if result_is_image:
+                    result = base64.b64encode(result)
+                click.echo(result)
+
+        # needed for click to work
+        wrapper.__name__ = f.__name__
+        new_line = '' if '\b' in f.__doc__ else '\b\n\n'
+        if not is_callable and input != 'image':
+            wrapper.__doc__ = (
+                """{}{}\n    - {} path to a local (file://) or """
+                """remote (http://, https://) JSON file representing {}.\n"""
+                """      A JSON string can also be piped as input""".format(
+                    f.__doc__, new_line, input.upper(), input))
+        else:
+            wrapper.__doc__ = (
+                """{}{}\n    - IMAGE path to a local (file://) or """
+                """remote (http://, https://) image file.\n"""
+                """      A Base64 string can also be piped as input """
+                """image.""".format(
+                    f.__doc__, new_line))
+        return wrapper
+
+    if is_callable:
+        return decorator(input)
+    else:
+        return decorator
 
 
 def pair_options_to_argument(argument, options, args=None, args_slice=None):
@@ -354,8 +389,8 @@ def get_color_histogram(image):
 
 
 @image_as_array
-def get_palette(image, n_colors, background_value=0.25,
-                background_saturation=0.2):
+def get_palette(image, n_colors, background_value=25,
+                background_saturation=20):
     """Calculate a palette of n_colors from RGB values in image. The
     first palette entry is always the background color; the rest are determined
     from foreground pixels by running K-Means clustering. Returns the
@@ -367,15 +402,21 @@ def get_palette(image, n_colors, background_value=0.25,
         value_threshold=background_value / 100.0,
         sat_threshold=background_saturation / 100.0,
     )
-    bg_color = noteshrink.get_bg_color(image, 6)  # 6 bits per channel
+    # 8 bits per channel avoid quantization artifacts,
+    # such as converting [255, 255, 255] to [254, 254, 254],
+    bg_color = noteshrink.get_bg_color(image, bits_per_channel=8)
     fg_mask = noteshrink.get_fg_mask(bg_color, image, options)
-    if any(fg_mask):
+    if fg_mask.any():
         masked_image = image[fg_mask]
     else:
         masked_image = image
     centers, _ = kmeans(masked_image, n_colors - 1)
-    palette = np.vstack((bg_color, centers)).astype(np.uint8)
-    return palette
+    # We need to guarantee that the first color returned is bg_color
+    # and that colors are all unique
+    bg_color = np.array(bg_color, dtype=np.uint8)
+    palette = np.unique(centers.astype(np.uint8), axis=0).astype(np.uint8)
+    palette = palette[np.all(palette - bg_color, axis=1)]
+    return np.vstack((bg_color, palette))
 
 
 def kmeans(X, n_clusters, **kwargs):
@@ -442,7 +483,9 @@ def parse_colors(ctx, param, value):
     """
     colors = []
     for color in value:
-        if color.startswith('#'):
+        if isinstance(color, (list, tuple)):
+            r, g, b = color
+        elif color.startswith('#'):
             hex_color = color[1:]
             hex_color_len = len(hex_color)
             r, g, b = None, None, None
@@ -454,22 +497,31 @@ def parse_colors(ctx, param, value):
                                        zip(*[iter(hex_color)] * 2)))
             except ValueError:
                 raise click.BadParameter(
-                    "Malformed hex color: {}".format(color)
-                )
+                    "Malformed hex color: {}".format(color))
         else:
             try:
                 r, g, b = json.loads(color)
             except ValueError:
                 raise click.BadParameter(
-                    "Malformed JSON or hexadecimal string: {}".format(color)
-                )
+                    "Malformed JSON or hexadecimal string: {}".format(color))
         if all(isinstance(c, int) and 0 <= c <= 255 for c in (r, g, b)):
             colors.append((r, g, b))
         else:
             raise click.BadParameter(
-                "Invalid color value: {}".format(color)
-            )
+                "Invalid color value: {}".format(color))
     return colors
+
+
+def parse_palette(ctx, param, value):
+    """Callback to turn a JSON representing a palette of colors in hexadecimal
+    or by its RGB components, into a list of all RGB components"""
+    if value:
+        try:
+            colors = parse_colors(ctx, param, json.loads(value))
+            return np.array(colors, np.uint8)
+        except ValueError:
+            raise click.BadParameter(
+                "Malformed JSON palette: {}".format(value))
 
 
 def convert(image):
@@ -477,3 +529,32 @@ def convert(image):
     with warnings.catch_warnings(record=True):
         warnings.filterwarnings('ignore', category=DataConversionWarning)
         return minmax_scale(image, (0, 255)).astype(np.ubyte)
+
+
+def parse_histogram(histogram):
+    """Parse a dictionary or JSON string representing a histogram of colors
+    by parsing the keys that codify colors into lists of RGB components
+    and the values to integer numbers"""
+    if not isinstance(histogram, dict):
+        histogram = json.loads(histogram)
+    try:
+        return {parse_colors(None, None, [k])[0]: int(v)
+                for k, v in histogram.items()}
+    except ValueError as e:
+        raise click.BadParameter("Malformed histogram: {}".format(e))
+
+
+def sample_histogram(histogram, sample_fraction=0.05):
+    """Sample a sample_fraction of colors from histogram"""
+    colors = np.fromiter(histogram.keys(), dtype='i8,i8,i8', count=-1)
+    counts = np.fromiter(histogram.values(), dtype=np.float32, count=-1)
+    size = counts.sum()
+    weights = counts / size
+    if sample_fraction is None:
+        samples = (k * v for k, v in histogram.items())
+        fraction = size.astype(int)
+    else:
+        fraction = int(size * sample_fraction)
+        samples = np.random.choice(colors, size=fraction, p=weights)
+    unraveled = np.fromiter(chain.from_iterable(samples), np.uint8, count=-1)
+    return unraveled.reshape(fraction, 3)

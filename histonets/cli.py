@@ -12,7 +12,9 @@ from .utils import (
     io_handler,
     pair_options_to_argument,
     parse_colors,
+    parse_histogram,
     parse_jsons,
+    parse_palette,
     parse_pipeline_json,
     RAW,
 )
@@ -22,6 +24,7 @@ from .api import (
     binarize_image,
     denoise_image,
     histogram_equalization,
+    histogram_palette,
     smooth_image,
     color_reduction,
     auto_clean,
@@ -86,11 +89,13 @@ def pipeline(image, actions):
     for action in actions:
         ctx = click.get_current_context()
         arguments = [output] + action.get('arguments', [])
-        options = action.get('options', {})
         command = main.get_command(ctx, action['action'])
         if command is None:
             raise click.BadParameter(
                 "Action '{}' not found".format(action['action']))
+        action_options = action.get('options', {})
+        options = {param.name: action_options.get(param.name, param.default)
+                   for param in command.params[:-2]}
         options['output'] = RAW
         try:
             output = command.callback(*arguments, **options)
@@ -162,7 +167,46 @@ def denoise(image, value):
 
 
 @main.command()
-@click.argument("colors", type=click.IntRange(2, 128))
+@click.option('-c', '--colors', type=click.IntRange(2, 128),
+              default=8,
+              help='Number of output colors. Ranges from 2 to 128. '
+                   'Defaults to 8.')
+@click.option('-f', '--sample-fraction', type=click.IntRange(1, 100),
+              default=5,
+              help='Percentage of pixels to sample. Ranges from 0 to 100. '
+                   'Defaults to 5.')
+@click.option('-bv', '--background-value', type=click.IntRange(1, 100),
+              default=25,
+              help='Threshold value to consider a pixel background. '
+                   'Ranges from 0 to 100. Defaults to 25.')
+@click.option('-bs', '--background-saturation', type=click.IntRange(1, 100),
+              default=20,
+              help='Threshold saturation to consider a pixel background. '
+                   'Ranges from 0 to 100. Defaults to 20.')
+@io_handler('histogram')
+def palette(histogram, colors, sample_fraction, background_value,
+            background_saturation):
+    """Extract a palette of colors from HISTOGRAM.
+
+    \b
+    - HISTOGRAM path to local file, URL, or JSON string representing a
+      dictionary with colors as keys and the count (pixels) of those colors as
+      values. Colors can be given as a list of its RGB components, or
+      in hexadecimal format preceded by the hash character (#).
+
+      Example::
+
+        histonets palette '{"#fa4345": 3829, "[123, 9, 108]": 982}'
+    """
+    histogram = parse_histogram(histogram)
+    return histogram_palette(
+        histogram, n_colors=colors,
+        sample_fraction=sample_fraction, background_value=background_value,
+        background_saturation=background_saturation).tolist()
+
+
+@main.command()
+@click.argument("colors", required=False, type=click.IntRange(2, 128))
 @click.option('-m', '--method', type=click.Choice(['kmeans', 'linear']),
               default='kmeans',
               help='Method for computing the palette. \'kmeans\' performs '
@@ -170,13 +214,20 @@ def denoise(image, value):
                    'algorithm; \'linear\' tries to quantize colors in a '
                    'linear scale, therefore will approximate to the next '
                    'power of 2. Defaults to \'kmeans\'.')
+@click.option('-p', '--palette', callback=parse_palette,
+              default=None,
+              help='Local file, URL, or JSON string representing a palette of '
+                   'colors encoded as lists of RGB components or '
+                   'hexadecimal strings preceded by the hash character (#). '
+                   'Ex: \'["#fa4345", "[123, 9, 108]", [1, 2, 3]]\'. '
+                   'If a palette is passed in, colors are ignored.')
 @io_handler
-def posterize(image, colors, method):
+def posterize(image, colors, method, palette):
     """Posterize IMAGE by reducing its number of colors.
 
     \b
     - COLORS, the number of colors of the output image, ranges from 0 to 64."""
-    return color_reduction(image, colors, method)
+    return color_reduction(image, colors, method, palette)
 
 
 @main.command()
@@ -202,20 +253,34 @@ def posterize(image, colors, method):
 @click.option('-s/-ns', '--saturate/--no-saturate',
               default=True,
               help='Saturate colors (default).')
+@click.option('-p', '--palette', callback=parse_palette,
+              default=None,
+              help='Local file, URL, or JSON string representing a palette of '
+                   'colors encoded as lists of RGB components or '
+                   'hexadecimal strings preceded by the hash character (#). '
+                   'Ex: \'["#fa4345", "[123, 9, 108]", [1, 2, 3]]\'. '
+                   'If a palette is passed in, colors are ignored.')
 @io_handler
 def clean(image, background_value, background_saturation, colors,
-          sample_fraction, white_background, saturate):
+          sample_fraction, white_background, saturate, palette):
     """Clean IMAGE automatically with sane defaults and allows for parameter
     fine tunning."""
     return auto_clean(image, background_value, background_saturation,
-                      colors, sample_fraction, white_background, saturate)
+                      colors, sample_fraction, white_background, saturate,
+                      palette)
 
 
 @main.command()
+@click.option('-p', '--palette', callback=parse_palette,
+              default=None,
+              help='Local file, URL, or JSON string representing a palette of '
+                   'colors encoded as lists of RGB components or '
+                   'hexadecimal strings preceded by the hash character (#). '
+                   'Ex: \'["#fa4345", "[123, 9, 108]", [1, 2, 3]]\'.')
 @io_handler
-def enhance(image):
+def enhance(image, palette):
     """Clean IMAGE automatically with sane defaults."""
-    return auto_clean(image)
+    return auto_clean(image, palette=palette)
 
 
 @main.command()

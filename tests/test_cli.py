@@ -18,7 +18,7 @@ import cv2
 import numpy as np
 from click.testing import CliRunner
 
-from histonets import cli
+from histonets import cli, utils
 
 
 def fixtures_path(file):
@@ -28,6 +28,12 @@ def fixtures_path(file):
 def encode_base64(file_path):
     with open(file_path, 'rb') as file:
         return base64.b64encode(file.read()).decode()
+
+
+def decode_base64(base64_string):
+    return utils.Image(
+        base64.b64decode(utils.local_encode(base64_string))
+    ).image
 
 
 class TestHistonetsCli(unittest.TestCase):
@@ -291,6 +297,46 @@ class TestHistonetsCli(unittest.TestCase):
         assert len(test_clean) < len(image)
         assert len(result.output.strip()) < len(image)
 
+    def test_command_clean_section_with_palette(self):
+        image_path = fixtures_path('icon.png')
+        image = cv2.imread(image_path)
+        palette = utils.get_palette(image[:, :, ::-1], n_colors=2)
+        clean_image_b64 = self.runner.invoke(
+            cli.clean,
+            [image_path, '-c', 2, '-f', 100, '-p',
+             json.dumps(palette.tolist())]
+        ).output.strip()
+        clean_image = decode_base64(clean_image_b64)
+        section_path = fixtures_path('icon_section.png')
+        section = cv2.imread(section_path)
+        clean_section_b64 = self.runner.invoke(
+            cli.clean,
+            [section_path, '-c', 2, '-f', 100, '-p',
+             json.dumps(palette.tolist())]
+        ).output.strip()
+        clean_section = decode_base64(clean_image_b64)
+        clean_image_colors = sorted(utils.get_color_histogram(
+            clean_image[:, :, ::-1]).keys())
+        section_colors = sorted(utils.get_color_histogram(
+            section[:, :, ::-1]).keys())
+        clean_section_colors = sorted(utils.get_color_histogram(
+            clean_section[:, :, ::-1]).keys())
+        assert 'Error' not in clean_image_b64
+        assert 'Error' not in clean_section_b64
+        assert section_colors != clean_section_colors
+        assert clean_section_colors == clean_image_colors
+
+    def test_command_enhance_with_palette(self):
+        image_path = fixtures_path('icon.png')
+        image = cv2.imread(image_path)
+        palette = utils.get_palette(image[:, :, ::-1], n_colors=8)
+        result = self.runner.invoke(
+            cli.enhance,
+            [image_path, '-p', json.dumps(palette.tolist())]
+        ).output.strip()
+        assert 'Error' not in result
+        assert len(result) > 0
+
     def test_command_enhance(self):
         result_clean = self.runner.invoke(cli.clean, [self.image_file])
         result_enhance = self.runner.invoke(cli.enhance, [self.image_file])
@@ -535,3 +581,19 @@ class TestHistonetsCli(unittest.TestCase):
         )
         skeleton = encode_base64(fixtures_path('map_sk_thin_d0.png'))
         assert skeleton == result.output.strip()
+
+    def test_command_palette(self):
+        palette = [[250, 67, 69], [123, 9, 108]]
+        result = self.runner.invoke(
+            cli.palette,
+            ['{"#fa4345": 3829, "[123, 9, 108]": 982}']
+        ).output.strip()
+        assert json.loads(result) == palette
+
+    def test_command_palette_file(self):
+        palette = [[250, 67, 69], [123, 9, 108]]
+        result = self.runner.invoke(
+            cli.palette,
+            [fixtures_path('palette.json')]
+        ).output.strip()
+        assert json.loads(result) == palette
