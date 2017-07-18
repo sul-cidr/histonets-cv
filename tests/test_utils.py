@@ -158,8 +158,8 @@ class TestHistonetsUtils(unittest.TestCase):
         samples = noteshrink.sample_pixels(rgb_image, options)
         palette = utils.get_palette(samples, 2, background_value=1,
                                     background_saturation=1)
-        test_palette = np.array([[254, 122, 94], [193, 86, 64]])
-        assert palette.shape == test_palette.shape
+        test_palette = np.array([[255, 123, 92], [193, 86, 64]])
+        assert palette.shape <= test_palette.shape
         # background colors must coincide
         assert np.array_equal(palette[0], test_palette[0])
 
@@ -178,8 +178,8 @@ class TestHistonetsUtils(unittest.TestCase):
         samples = noteshrink.sample_pixels(rgb_image, options)
         palette = utils.get_palette(samples, 128, background_value=100,
                                     background_saturation=100)
-        background_color = np.array([254, 122, 94])
-        assert palette.shape == (128, 3)
+        background_color = np.array([255, 123, 92])
+        assert palette.shape <= (128, 3)
         # background colors must coincide
         assert np.array_equal(palette[0], background_color)
 
@@ -337,8 +337,8 @@ main()
         self.assertRaises(click.BadParameter, utils.parse_colors,
                           None, None, colors)
 
-    def test_parse_colors_hex(self):
-        colors = ['#abc', '#aabbcc', '[123, 123, 123]']
+    def test_parse_colors_hex_list(self):
+        colors = ['#abc', '#aabbcc', [123, 123, 123]]
         obj = [(170, 187, 204), (170, 187, 204), (123, 123, 123)]
         assert utils.parse_colors(None, None, colors) == obj
 
@@ -370,36 +370,98 @@ main()
         assert choice.get_metavar(None) == '[1|2|3]'
 
     def test_stream(self):
-        stream = utils.Stream().convert(self.json)
+        stream = utils.Stream().convert(value=self.json)
         content = json.loads(stream)
         assert content == self.json_content
 
     def test_stream_gz(self):
-        stream = utils.Stream().convert(self.json_gz)
+        stream = utils.Stream().convert(value=self.json_gz)
         content = json.loads(stream)
         assert content == self.json_content
 
     def test_stream_gz_using_protocol(self):
-        stream = utils.Stream().convert(self.json_gz_file)
+        stream = utils.Stream().convert(value=self.json_gz_file)
         content = json.loads(stream)
         assert content == self.json_content
 
     def test_stream_bad_scheme(self):
         with self.assertRaises(click.BadParameter):
-            utils.Stream().convert('ftp://' + self.json)
+            utils.Stream().convert(value='ftp://' + self.json)
 
     def test_jsonstream(self):
-        content = utils.JSONStream().convert(self.json)
+        content = utils.JSONStream().convert(value=self.json)
         assert content == self.json_content
 
     def test_jsonstream_gz(self):
-        content = utils.JSONStream().convert(self.json_gz)
+        content = utils.JSONStream().convert(value=self.json_gz)
         assert content == self.json_content
 
     def test_jsonstream_gz_using_protocol(self):
-        content = utils.JSONStream().convert(self.json_gz_file)
+        content = utils.JSONStream().convert(value=self.json_gz_file)
         assert content == self.json_content
 
     def test_jsonstream_raw(self):
-        content = utils.JSONStream().convert(json.dumps(self.json_content))
+        content = utils.JSONStream().convert(
+            value=json.dumps(self.json_content))
         assert content == self.json_content
+
+    def test_parse_histogram(self):
+        histogram = '{"#abc": 10, "#aabbdd": "100", "[123, 123, 123]": "1"}'
+        histogram_dict = {
+            (123, 123, 123): 1,
+            (170, 187, 221): 100,
+            (170, 187, 204): 10
+        }
+        assert utils.parse_histogram(histogram) == histogram_dict
+
+    def test_parse_histogram_invalid(self):
+        histogram = '{"#abc": 10, "#aabbdd": "1e3", "[123, 123, 123]": "1"}'
+        self.assertRaises(click.BadParameter, utils.parse_histogram,
+                          histogram)
+
+    def test_parse_histogram_dict(self):
+        histogram = {
+            (123, 123, 123): 1,
+            '#aabbdd': 100,
+            '#abc': 10
+        }
+        histogram_dict = {
+            (123, 123, 123): 1,
+            (170, 187, 221): 100,
+            (170, 187, 204): 10
+        }
+        assert utils.parse_histogram(histogram) == histogram_dict
+
+    def test_sample_histogram(self):
+        histogram = dict(zip(*[
+            [tuple(c) for c in np.random.randint(255, size=(5, 3))],
+            np.random.randint(100, size=5)]
+        ))
+        sampled = utils.sample_histogram(histogram)
+        assert sampled.shape <= (100 * 5 * 0.05, 3)
+
+    def test_sample_histogram_with_lower_sample_fraction(self):
+        histogram = dict(zip(*[
+            [tuple(c) for c in np.random.randint(255, size=(5, 3))],
+            np.random.randint(100, size=5)]
+        ))
+        sampled = utils.sample_histogram(histogram, sample_fraction=0.01)
+        assert sampled.shape <= (100 * 5 * 0.01, 3)
+
+    def test_parse_palette(self):
+        palette_str = '["#abc", "#aabbdd", "[123, 123, 123]", [1, 2, 3]]'
+        palette = [
+            [170, 187, 204],
+            [170, 187, 221],
+            [123, 123, 123],
+            [1, 2, 3],
+        ]
+        assert (utils.parse_palette(None, None, palette_str).tolist()
+                == palette)
+
+    def test_parse_palette_invalid(self):
+        self.assertRaises(click.BadParameter, utils.parse_palette,
+                          None, None, '#abc')
+
+    def test_parse_palette_none(self):
+        assert utils.parse_palette(None, None, None) is None

@@ -161,6 +161,12 @@ Options:
   -w, --white-background          Make background white.
   -s, --saturate / -ns, --no-saturate
                                   Saturate colors (default).
+  -p, --palette TEXT              Local file, URL, or JSON string representing
+                                  a palette of colors encoded as lists of RGB
+                                  components or hexadecimal strings preceded
+                                  by the hash character (#). Ex: '["#fa4345",
+                                  "[123, 9, 108]", [1, 2, 3]]'. If a palette
+                                  is passed in, colors are ignored.
   -o, --output FILENAME           File name to save the output. For images, if
                                   the file extension is different than IMAGE,
                                   a conversion is made. When not given,
@@ -236,6 +242,10 @@ Clean IMAGE automatically with sane defaults.
 
 Options:
 
+  -p, --palette TEXT     Local file, URL, or JSON string representing a
+                         palette of colors encoded as lists of RGB components
+                         or hexadecimal strings preceded by the hash character
+                         (#). Ex: '["#fa4345", "[123, 9, 108]", [1, 2, 3]]'.
   -o, --output FILENAME  File name to save the output. For images, if the file
                          extension is different than IMAGE, a conversion is
                          made. When not given, standard output is used and
@@ -299,6 +309,47 @@ Options:
                                   otherwise.
   
 
+palette
+~~~~~~~
+Usage: histonets [OPTIONS] [HISTOGRAM]
+
+Extract a palette of colors from HISTOGRAM.
+
+- HISTOGRAM path to local file, URL, or JSON string representing a
+  dictionary with colors as keys and the count (pixels) of those colors as
+  values. Colors can be given as a list of its RGB components, or
+  in hexadecimal format preceded by the hash character (#).
+
+  Example::
+
+    histonets palette '{"#fa4345": 3829, "[123, 9, 108]": 982}'
+
+- HISTOGRAM path to a local (file://) or remote (http://, https://) JSON file representing histogram.
+  A JSON string can also be piped as input
+
+Options:
+
+  -c, --colors INTEGER RANGE      Number of output colors. Ranges from 2 to
+                                  128. Defaults to 8.
+  -f, --sample-fraction INTEGER RANGE
+                                  Percentage of pixels to sample. Ranges from
+                                  0 to 100. Defaults to 5.
+  -bv, --background-value INTEGER RANGE
+                                  Threshold value to consider a pixel
+                                  background. Ranges from 0 to 100. Defaults
+                                  to 25.
+  -bs, --background-saturation INTEGER RANGE
+                                  Threshold saturation to consider a pixel
+                                  background. Ranges from 0 to 100. Defaults
+                                  to 20.
+  -o, --output FILENAME           File name to save the output. For images, if
+                                  the file extension is different than IMAGE,
+                                  a conversion is made. When not given,
+                                  standard output is used and images are
+                                  serialized using Base64; and to JSON
+                                  otherwise.
+  
+
 pipeline
 ~~~~~~~~
 Usage: histonets [OPTIONS] ACTIONS [IMAGE]
@@ -329,7 +380,7 @@ Options:
 
 posterize
 ~~~~~~~~~
-Usage: histonets [OPTIONS] COLORS [IMAGE]
+Usage: histonets [OPTIONS] [COLORS] [IMAGE]
 
 Posterize IMAGE by reducing its number of colors.
 
@@ -345,6 +396,12 @@ Options:
                                 tries to quantize colors in a linear scale,
                                 therefore will approximate to the next power
                                 of 2. Defaults to 'kmeans'.
+  -p, --palette TEXT            Local file, URL, or JSON string representing a
+                                palette of colors encoded as lists of RGB
+                                components or hexadecimal strings preceded by
+                                the hash character (#). Ex: '["#fa4345",
+                                "[123, 9, 108]", [1, 2, 3]]'. If a palette is
+                                passed in, colors are ignored.
   -o, --output FILENAME         File name to save the output. For images, if
                                 the file extension is different than IMAGE, a
                                 conversion is made. When not given, standard

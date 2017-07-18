@@ -19,7 +19,8 @@ from .utils import (
     get_palette,
     kmeans,
     match_template_mask,
-    output_as_mask
+    output_as_mask,
+    sample_histogram,
 )
 
 
@@ -83,7 +84,7 @@ def denoise_image(image, value):
 
 
 @image_as_array
-def color_reduction(image, n_colors, method='kmeans'):
+def color_reduction(image, n_colors, method='kmeans', palette=None):
     """Reduce the number of colors in image to n_colors using method"""
     method = method.lower()
     if method not in ('kmeans', 'linear'):
@@ -115,7 +116,7 @@ def color_reduction(image, n_colors, method='kmeans'):
 @image_as_array
 def auto_clean(image, background_value=25, background_saturation=20,
                colors=8, sample_fraction=5, white_background=False,
-               saturate=True):
+               saturate=True, palette=None):
     """Clean image with minimal input required. Based on the work by
     Matt Zucker: https://mzucker.github.io/2016/09/20/noteshrink.html"""
     if background_value < 1:
@@ -134,25 +135,27 @@ def auto_clean(image, background_value=25, background_saturation=20,
         colors = 2
     elif colors > 128:
         colors = 128
-    options = namedtuple(
+    Options = namedtuple(
         'options',
         ['quiet', 'sample_fraction', 'value_threshold', 'sat_threshold']
-    )(
+    )
+    options = Options(
         quiet=True,
         sample_fraction=sample_fraction / 100.0,
         value_threshold=background_value / 100.0,
         sat_threshold=background_saturation / 100.0,
     )
     rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-    samples = noteshrink.sample_pixels(rgb_image, options)
-    palette = get_palette(samples, colors, background_value,
-                          background_saturation)
+    if palette is None:
+        samples = noteshrink.sample_pixels(rgb_image, options)
+        palette = get_palette(samples, colors, background_value,
+                              background_saturation)
     labels = noteshrink.apply_palette(rgb_image, palette, options)
     if saturate:
         palette = palette.astype(np.float32)
         pmin = palette.min()
         pmax = palette.max()
-        palette = 255 * (palette - pmin) / (pmax - pmin)
+        palette = 255 * (palette - pmin) / ((pmax - pmin) or 1)
         palette = palette.astype(np.uint8)
     if white_background:
         palette = palette.copy()
@@ -370,3 +373,15 @@ def skeletonize_image(image, method=None, dilation=None, binarization=None):
         else:
             skeleton = morphology.skeletonize(mono_image)
     return convert(skeleton)
+
+
+def histogram_palette(histogram, n_colors=8, sample_fraction=5,
+                      background_value=25, background_saturation=20):
+    """Return a palette of at most n_colors unique colors extracted
+    after sampling histogram by sample_fraction."""
+    sampled_histogram = sample_histogram(histogram,
+                                         sample_fraction=sample_fraction)
+    return get_palette(
+        sampled_histogram,
+        n_colors=n_colors, background_value=background_value,
+        background_saturation=background_saturation)
