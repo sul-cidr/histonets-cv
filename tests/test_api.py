@@ -167,6 +167,17 @@ class TestHistonets(unittest.TestCase):
             test_image
         )
 
+    def test_posterization_linear_4_colors_with_palette(self):
+        image = self.image
+        test_image = cv2.imread(fixtures_path('poster_linear4.png'))
+        palette = utils.get_palette(image.reshape((-1, 3)), 4, method='linear')
+        # palette is given as RGB and get_color_histogram returns colors
+        # in the color scheme of image, which by default is BGR
+        reduce_image = histonets.color_reduction(image, 4, 'linear',
+                                                 palette=palette)
+        assert (len(utils.get_color_histogram(test_image))
+                == len(utils.get_color_histogram(reduce_image)))
+
     def test_posterization_kmeans_4_colors(self):
         image = self.image
         test_image = cv2.imread(fixtures_path('poster_kmeans4.png'))
@@ -192,6 +203,22 @@ class TestHistonets(unittest.TestCase):
         image = self.image
         test_image = cv2.imread(fixtures_path('poster_kmeans128.png'))
         reduce_image = histonets.color_reduction(image, 500, 'kmeans')
+        assert (len(utils.get_color_histogram(test_image))
+                == len(utils.get_color_histogram(reduce_image)))
+
+    def test_posterization_kmeans_4_colors_with_palette(self):
+        image = self.image
+        test_image = cv2.imread(fixtures_path('poster_kmeans4.png'))
+        palette = np.array([
+            [60, 37, 38],
+            [174, 99, 78],
+            [123, 66, 58],
+            [215, 159, 138],
+        ], dtype=np.uint8)
+        # palette is given as RGB and get_color_histogram returns colors
+        # in the color scheme of image, which by default is BGR
+        reduce_image = histonets.color_reduction(image, 4, 'kmeans',
+                                                 palette=palette)
         assert (len(utils.get_color_histogram(test_image))
                 == len(utils.get_color_histogram(reduce_image)))
 

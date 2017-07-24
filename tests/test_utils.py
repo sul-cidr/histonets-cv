@@ -183,6 +183,12 @@ class TestHistonetsUtils(unittest.TestCase):
         # background colors must coincide
         assert np.array_equal(palette[0], background_color)
 
+    def test_get_palette_kmeans(self):
+        image = utils.Image.get_images([self.image_png])[0].image
+        image_pixels = image.reshape((-1, 3))
+        assert (len(utils.get_palette(image_pixels, 4))
+                == len(utils.kmeans(image_pixels, 4)[0]))
+
     def test_pair_options_to_argument_args(self):
         args = ['im', 't1', '-o', '1', 't2', 't3', '-o', '3']
 
@@ -465,3 +471,12 @@ main()
 
     def test_parse_palette_none(self):
         assert utils.parse_palette(None, None, None) is None
+
+    def test_get_quantize_method(self):
+        assert utils.get_quantize_method('median') == 0
+        assert utils.get_quantize_method('octree') == 2
+        assert utils.get_quantize_method('max') == 1
+
+    def test_unique(self):
+        assert (utils.unique(['b', 'b', 'b', 'a', 'a', 'c', 'c']).tolist()
+                == ['b', 'a', 'c'])
