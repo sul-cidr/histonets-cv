@@ -54,7 +54,10 @@ def main(rst=None):
         for command_name, command in sorted(main.commands.items()):
             click.echo(command_name)
             click.echo('~' * len(command_name))
-            click.echo(command.get_usage(ctx).replace('\b\n', ''))
+            click.echo(command.get_usage(ctx)
+                              .replace('histonets ', "histonets {} ".format(
+                                       command_name))
+                              .replace('\b\n', ''))
             click.echo()
             click.echo(command.help.replace('\b\n', ''))
             command_help = command.get_help(ctx)
