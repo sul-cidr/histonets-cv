@@ -497,7 +497,7 @@ class TestHistonetsCli(unittest.TestCase):
     def test_command_ridges(self):
         result = self.runner.invoke(
             cli.ridges,
-            ['-w', 6, '-th', 160, '-d', 3,
+            ['-w', 6, '-th', 160, '-d', 1,
              self.image_map]
         )
         masked = encode_base64(fixtures_path('map_noridge.png'))
@@ -506,7 +506,7 @@ class TestHistonetsCli(unittest.TestCase):
     def test_command_ridges_as_mask(self):
         result = self.runner.invoke(
             cli.ridges,
-            ['-w', 6, '-th', 160, '-d', 3, '-m',
+            ['-w', 6, '-th', 160, '-d', 1, '-m',
              self.image_map]
         )
         mask = encode_base64(fixtures_path('map_ridge.png'))
@@ -579,16 +579,16 @@ class TestHistonetsCli(unittest.TestCase):
             cli.skeletonize,
             [self.image_map],
         )
-        skeleton = encode_base64(fixtures_path('map_sk_combined_d13.png'))
+        skeleton = encode_base64(fixtures_path('map_sk_combined_d6.png'))
         assert skeleton == result.output.strip()
 
     def test_skeletonize_default(self):
         result = self.runner.invoke(
             cli.skeletonize,
-            ['-m', 'combined', '-b', 'li', '-d', 13,
+            ['-m', 'combined', '-b', 'li', '-d', 6,
              self.image_map],
         )
-        skeleton = encode_base64(fixtures_path('map_sk_combined_d13.png'))
+        skeleton = encode_base64(fixtures_path('map_sk_combined_d6.png'))
         assert skeleton == result.output.strip()
 
     def test_skeletonize_no_dilation_thin(self):

@@ -538,7 +538,7 @@ class TestHistonets(unittest.TestCase):
 
     def test_skeletonize(self):
         image = cv2.imread(fixtures_path('map.png'))
-        for dilation in (None, 13):
+        for dilation in (None, 6):
             for method in ('3d', 'regular', 'thin', 'medial', 'combined'):
                 skeleton = histonets.skeletonize_image(image, method, dilation)
                 filename = 'map_sk_{}_d{}.png'.format(method, dilation or 0)

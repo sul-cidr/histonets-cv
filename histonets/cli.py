@@ -399,9 +399,9 @@ def select(image, colors, tolerance, mask):
               help='Threshold to binarize detected ridges. '
                    'Ranges from 0 to 255. Defaults to 128.')
 @click.option('-d', '--dilation', type=click.IntRange(0, 100),
-              default=3,
-              help='Dilation to thicken the mask of detected ridges. '
-                   'Ranges from 0 to 100. Defaults to 3.')
+              default=1,
+              help='Dilation radius to thicken the mask of detected ridges. '
+                   'Ranges from 0 to 100. Defaults to 1.')
 @click.option('-m', '--mask', is_flag=True,
               help='Returns a black and white mask instead.')
 @io_handler
@@ -479,10 +479,10 @@ def binarize(image, method):
                    'Defaults to a \'combined\' approach of \'3d\', '
                    '\'medial\', and \'regular\'.')
 @click.option('-d', '--dilation', type=click.IntRange(0, 100),
-              default=13,
-              help='Dilation to thicken the binarized image prior to perform '
-                   'skeletonization. '
-                   'Ranges from 0 to 100. Defaults to 13.')
+              default=6,
+              help='Dilation radius to thicken the binarized image prior to '
+                   'perform skeletonization. '
+                   'Ranges from 0 to 100. Defaults to 6.')
 @click.option('-b', '--binarization-method',
               type=Choice(['sauvola', 'isodata', 'otsu', 'li']),
               default='li',

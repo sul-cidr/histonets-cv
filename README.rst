@@ -445,8 +445,9 @@ Options:
                                   Ranges from 1 to 100. Defaults to 6.
   -th, --threshold INTEGER RANGE  Threshold to binarize detected ridges.
                                   Ranges from 0 to 255. Defaults to 128.
-  -d, --dilation INTEGER RANGE    Dilation to thicken the mask of detected
-                                  ridges. Ranges from 0 to 100. Defaults to 3.
+  -d, --dilation INTEGER RANGE    Dilation radius to thicken the mask of
+                                  detected ridges. Ranges from 0 to 100.
+                                  Defaults to 1.
   -m, --mask                      Returns a black and white mask instead.
   -o, --output FILENAME           File name to save the output. For images, if
                                   the file extension is different than IMAGE,
@@ -511,9 +512,9 @@ Options:
                                   ons/plot_thresholding.html. Defaults to a
                                   'combined' approach of '3d', 'medial', and
                                   'regular'.
-  -d, --dilation INTEGER RANGE    Dilation to thicken the binarized image
-                                  prior to perform skeletonization. Ranges
-                                  from 0 to 100. Defaults to 13.
+  -d, --dilation INTEGER RANGE    Dilation radius to thicken the binarized
+                                  image prior to perform skeletonization.
+                                  Ranges from 0 to 100. Defaults to 6.
   -b, --binarization-method [sauvola|isodata|otsu|li]
                                   Thresholding method to obtain the binary
                                   image. For reference, see http://scikit-imag
