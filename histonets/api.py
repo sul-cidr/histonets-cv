@@ -164,7 +164,7 @@ def auto_clean(image, background_value=25, background_saturation=20,
     if white_background:
         palette = palette.copy()
         palette[0] = (255, 255, 255)
-    return palette[labels]
+    return palette[labels][:, :, ::-1]  # swap R and G channels
 
 
 @image_as_array
