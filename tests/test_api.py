@@ -234,7 +234,7 @@ class TestHistonets(unittest.TestCase):
         test_image = cv2.imread(fixtures_path('clean.png'))
         reduce_image = histonets.auto_clean(image)
         assert (len(utils.get_color_histogram(test_image))
-                == len(utils.get_color_histogram(reduce_image)))
+                >= len(utils.get_color_histogram(reduce_image)))
 
     def test_auto_clean_non_default(self):
         image = self.image
