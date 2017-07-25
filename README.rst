@@ -48,7 +48,7 @@ Commands
 
 binarize
 ~~~~~~~~
-Usage: histonets [OPTIONS] [IMAGE]
+Usage: histonets binarize [OPTIONS] [IMAGE]
 
 Binarize IMAGE using a thresholding method.
 
@@ -77,7 +77,7 @@ Options:
 
 blobs
 ~~~~~
-Usage: histonets [OPTIONS] [IMAGE]
+Usage: histonets blobs [OPTIONS] [IMAGE]
 
 Binarize using threshold and remove white blobs of contiguous pixels
 of size between min and max from IMAGE, turning them into black.
@@ -116,7 +116,7 @@ Options:
 
 brightness
 ~~~~~~~~~~
-Usage: histonets [OPTIONS] VALUE [IMAGE]
+Usage: histonets brightness [OPTIONS] VALUE [IMAGE]
 
 Adjust brightness of IMAGE.
 
@@ -135,7 +135,7 @@ Options:
 
 clean
 ~~~~~
-Usage: histonets [OPTIONS] [IMAGE]
+Usage: histonets clean [OPTIONS] [IMAGE]
 
 Clean IMAGE automatically with sane defaults and allows for parameter
 fine tunning.
@@ -177,7 +177,7 @@ Options:
 
 contrast
 ~~~~~~~~
-Usage: histonets [OPTIONS] VALUE [IMAGE]
+Usage: histonets contrast [OPTIONS] VALUE [IMAGE]
 
 Adjust contrast of IMAGE.
 
@@ -196,7 +196,7 @@ Options:
 
 denoise
 ~~~~~~~
-Usage: histonets [OPTIONS] VALUE [IMAGE]
+Usage: histonets denoise [OPTIONS] VALUE [IMAGE]
 
 Denoise IMAGE.
 
@@ -215,7 +215,7 @@ Options:
 
 download
 ~~~~~~~~
-Usage: histonets [OPTIONS] [IMAGE]
+Usage: histonets download [OPTIONS] [IMAGE]
 
 Download IMAGE.
 
@@ -233,7 +233,7 @@ Options:
 
 enhance
 ~~~~~~~
-Usage: histonets [OPTIONS] [IMAGE]
+Usage: histonets enhance [OPTIONS] [IMAGE]
 
 Clean IMAGE automatically with sane defaults.
 
@@ -255,7 +255,7 @@ Options:
 
 equalize
 ~~~~~~~~
-Usage: histonets [OPTIONS] VALUE [IMAGE]
+Usage: histonets equalize [OPTIONS] VALUE [IMAGE]
 
 Histogram equalization on IMAGE.
 
@@ -274,7 +274,7 @@ Options:
 
 match
 ~~~~~
-Usage: histonets [OPTIONS] TEMPLATES... [IMAGE]
+Usage: histonets match [OPTIONS] TEMPLATES... [IMAGE]
 
 Look for TEMPLATES in IMAGE and return the bounding boxes of
 the matches. Options may be provided after each TEMPLATE.
@@ -311,7 +311,7 @@ Options:
 
 palette
 ~~~~~~~
-Usage: histonets [OPTIONS] [HISTOGRAM]
+Usage: histonets palette [OPTIONS] [HISTOGRAM]
 
 Extract a palette of colors from HISTOGRAM.
 
@@ -364,7 +364,7 @@ Options:
 
 pipeline
 ~~~~~~~~
-Usage: histonets [OPTIONS] ACTIONS [IMAGE]
+Usage: histonets pipeline [OPTIONS] ACTIONS [IMAGE]
 
 Allow chaining a series of actions to be applied to IMAGE.
 Output will depend on the last action applied.
@@ -392,7 +392,7 @@ Options:
 
 posterize
 ~~~~~~~~~
-Usage: histonets [OPTIONS] [COLORS] [IMAGE]
+Usage: histonets posterize [OPTIONS] [COLORS] [IMAGE]
 
 Posterize IMAGE by reducing its number of colors.
 
@@ -427,7 +427,7 @@ Options:
 
 ridges
 ~~~~~~
-Usage: histonets [OPTIONS] [IMAGE]
+Usage: histonets ridges [OPTIONS] [IMAGE]
 
 Remove ridges from IMAGE, turning them into black.
 
@@ -458,7 +458,7 @@ Options:
 
 select
 ~~~~~~
-Usage: histonets [OPTIONS] COLORS... [IMAGE]
+Usage: histonets select [OPTIONS] COLORS... [IMAGE]
 
 Select COLORS in IMAGE, turning the rest into black.
 
@@ -486,7 +486,7 @@ Options:
 
 skeletonize
 ~~~~~~~~~~~
-Usage: histonets [OPTIONS] [IMAGE]
+Usage: histonets skeletonize [OPTIONS] [IMAGE]
 
 Extract the morphological skeleton of IMAGE. If the image is not black
 and white, it will be binarized using a binarization-method, which by
@@ -529,7 +529,7 @@ Options:
 
 smooth
 ~~~~~~
-Usage: histonets [OPTIONS] VALUE [IMAGE]
+Usage: histonets smooth [OPTIONS] VALUE [IMAGE]
 
 Smooth IMAGE using bilateral filter.
 
