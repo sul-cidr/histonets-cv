@@ -192,9 +192,9 @@ def match_templates(image, templates, overlap=0.15):
         if template_flip:
             if template_flip[0] in ('h', 'a'):
                 transformations.append(lambda im: cv2.flip(im, 1))
-            elif template_flip[0] in ('v', 'a'):
+            if template_flip[0] in ('v', 'a'):
                 transformations.append(lambda im: cv2.flip(im, 0))
-            elif template_flip[0] in ('b', 'a'):
+            if template_flip[0] in ('b', 'a'):
                 transformations.append(lambda im: cv2.flip(cv2.flip(im, 1), 0))
         for transformation in transformations:
             transformed_template = transformation(gray_template)
