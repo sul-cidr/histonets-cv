@@ -409,6 +409,22 @@ class TestHistonets(unittest.TestCase):
         matches_flip = histonets.match_templates(image, templates_flip)
         assert np.array_equal(matches_flip, matches)
 
+    def test_match_templates_flip_all(self):
+        image = self.image
+        template = cv2.imread(fixtures_path('template.png'))
+        templates = [
+            {'image': template, 'threshold': 95}
+        ]
+        matches = histonets.match_templates(image, templates)
+        for flip in ('', '_h', '_v', '_b'):
+            templates_flip = [{
+                'image': cv2.imread(
+                    fixtures_path("template{}.png".format(flip))),
+                'flip': 'a'
+            }]
+            matches_flip = histonets.match_templates(image, templates_flip)
+            assert np.array_equal(matches_flip, matches)
+
     def test_match_templates_mask(self):
         image = self.image
         template = cv2.imread(fixtures_path('template_m.png'))
