@@ -236,6 +236,13 @@ class TestHistonets(unittest.TestCase):
         assert (len(utils.get_color_histogram(test_image))
                 == len(utils.get_color_histogram(reduce_image)))
 
+    def test_auto_clean_channels_order(self):
+        reduce_image = histonets.auto_clean(self.image)
+        b_channel_sum = reduce_image[:, :, 0].sum()
+        g_channel_sum = reduce_image[:, :, 1].sum()
+        r_channel_sum = reduce_image[:, :, 2].sum()
+        assert r_channel_sum > g_channel_sum > b_channel_sum
+
     def test_auto_clean_non_default(self):
         image = self.image
         test_image = cv2.imread(fixtures_path('clean.png'))
