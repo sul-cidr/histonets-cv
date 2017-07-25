@@ -287,7 +287,7 @@ def remove_ridges(image, width=6, threshold=160, dilation=3,
 @image_as_array
 @output_as_mask
 def remove_blobs(image, min_area=0, max_area=sys.maxsize, threshold=128,
-                 method='8-connected'):
+                 method='8-connected', return_mask=False):
     """Binarize image using threshold, and remove (turn into black)
     blobs of connected pixels of white of size bigger or equal than
     min_area but smaller or equal than max_area from the original image,
