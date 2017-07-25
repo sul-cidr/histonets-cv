@@ -274,6 +274,24 @@ class TestHistonetsCli(unittest.TestCase):
         )
         assert test_posterize_image == result.output.strip()
 
+    def test_command_posterize_linear_with_palette(self):
+        palette = [
+            [241, 238, 255],
+            [27, 9, 0],
+            [245, 128, 35],
+            [91, 123, 164],
+        ]
+        result = self.runner.invoke(
+            cli.posterize,
+            ['4', '-m', 'linear', '-p', json.dumps(palette), self.image_file]
+        )
+        assert 'Error' not in result.output
+        assert len(result.output.strip()) > 0
+        test_posterize_image = encode_base64(
+            fixtures_path('poster_linear4.png')
+        )
+        assert test_posterize_image == result.output.strip()
+
     def test_command_posterize_default_method(self):
         result = self.runner.invoke(
             cli.posterize,

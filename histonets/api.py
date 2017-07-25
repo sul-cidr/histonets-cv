@@ -6,8 +6,8 @@ from collections import namedtuple
 import cv2
 import noteshrink
 import numpy as np
+import PIL
 from imutils import object_detection
-from PIL import Image as PILImage
 from skimage import exposure
 from skimage import feature
 from skimage import morphology
@@ -19,6 +19,7 @@ from .utils import (
     get_palette,
     kmeans,
     match_template_mask,
+    get_quantize_method,
     output_as_mask,
     sample_histogram,
 )
@@ -87,7 +88,7 @@ def denoise_image(image, value):
 def color_reduction(image, n_colors, method='kmeans', palette=None):
     """Reduce the number of colors in image to n_colors using method"""
     method = method.lower()
-    if method not in ('kmeans', 'linear'):
+    if method not in ('kmeans', 'linear', 'max', 'median', 'octree'):
         method = 'kmeans'
     if n_colors < 2:
         n_colors = 2
@@ -97,20 +98,22 @@ def color_reduction(image, n_colors, method='kmeans', palette=None):
         n_clusters = n_colors
         h, w = image.shape[:2]
         img = cv2.cvtColor(image, cv2.COLOR_BGR2LAB)
-        img = img.reshape((img.shape[0] * img.shape[1], 3))
+        img = img.reshape((-1, 3))  # -1 -> img.shape[0] * img.shape[1]
         centers, labels = kmeans(img, n_clusters)
+        if palette is not None:
+            # palette comes in RGB
+            centers = cv2.cvtColor(np.array([palette]), cv2.COLOR_RGB2LAB)[0]
         quant = centers[labels].reshape((h, w, 3))
-        reduced = cv2.cvtColor(quant, cv2.COLOR_LAB2BGR)
+        output = cv2.cvtColor(quant, cv2.COLOR_LAB2BGR)
     else:
-        # convert to the exponent of the next power of 2
-        n_levels = int(np.ceil(np.log(n_colors) / np.log(2)))
-        indices = np.arange(0, 256)
-        divider = np.linspace(0, 255, n_levels + 1)[1]
-        quantiz = np.int0(np.linspace(0, 255, n_levels))
-        color_levels = np.clip(np.int0(indices / divider), 0, n_levels - 1)
-        palette = quantiz[color_levels]
-        reduced = cv2.convertScaleAbs(palette[image])
-    return reduced
+        img = PIL.Image.fromarray(image[:, :, ::-1], mode='RGB')
+        quant = img.quantize(colors=n_colors,
+                             method=get_quantize_method(method))
+        if palette is not None:
+            palette = np.array(palette, dtype=np.uint8)
+            quant.putpalette(palette.flatten())
+        output = np.array(quant.convert('RGB'), dtype=np.uint8)[:, :, ::-1]
+    return output
 
 
 @image_as_array
@@ -160,9 +163,7 @@ def auto_clean(image, background_value=25, background_saturation=20,
     if white_background:
         palette = palette.copy()
         palette[0] = (255, 255, 255)
-    output = PILImage.fromarray(labels, 'P')
-    output.putpalette(palette.flatten())
-    return np.array(output.convert('RGB'))[:, :, ::-1]  # swap R and G channels
+    return palette[labels]
 
 
 @image_as_array
@@ -375,13 +376,13 @@ def skeletonize_image(image, method=None, dilation=None, binarization=None):
     return convert(skeleton)
 
 
-def histogram_palette(histogram, n_colors=8, sample_fraction=5,
+def histogram_palette(histogram, n_colors=8, method='auto', sample_fraction=5,
                       background_value=25, background_saturation=20):
     """Return a palette of at most n_colors unique colors extracted
     after sampling histogram by sample_fraction."""
     sampled_histogram = sample_histogram(histogram,
                                          sample_fraction=sample_fraction)
     return get_palette(
-        sampled_histogram,
+        sampled_histogram, method=method,
         n_colors=n_colors, background_value=background_value,
         background_saturation=background_saturation)

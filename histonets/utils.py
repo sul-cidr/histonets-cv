@@ -16,6 +16,7 @@ import click
 import cv2
 import noteshrink
 import numpy as np
+import PIL
 from click.utils import get_os_args
 from skimage import filters as skfilters
 from sklearn.cluster import MiniBatchKMeans
@@ -389,34 +390,68 @@ def get_color_histogram(image):
 
 
 @image_as_array
-def get_palette(image, n_colors, background_value=25,
-                background_saturation=20):
-    """Calculate a palette of n_colors from RGB values in image. The
-    first palette entry is always the background color; the rest are determined
-    from foreground pixels by running K-Means clustering. Returns the
-    palette."""
-    options = collections.namedtuple(
-        'options', ['quiet', 'value_threshold', 'sat_threshold']
-    )(
-        quiet=True,
-        value_threshold=background_value / 100.0,
-        sat_threshold=background_saturation / 100.0,
-    )
-    # 8 bits per channel avoid quantization artifacts,
-    # such as converting [255, 255, 255] to [254, 254, 254],
-    bg_color = noteshrink.get_bg_color(image, bits_per_channel=8)
-    fg_mask = noteshrink.get_fg_mask(bg_color, image, options)
-    if fg_mask.any():
-        masked_image = image[fg_mask]
+def get_palette(pixel_colors, n_colors, background_value=25,
+                background_saturation=20, method=None):
+    """Calculate a palette of n_colors from RGB values from an array of colors.
+    Parameters background_value and background_saturation are ignored for
+    methods other than 'auto'.
+    When method='auto', the first palette entry is always the background
+    color; the rest are determined from foreground pixels by running K-Means
+    clustering.
+    Returns the palette."""
+    if method is None:
+        method = 'auto'
+    if method == 'auto':
+        options = collections.namedtuple(
+            'options', ['quiet', 'value_threshold', 'sat_threshold']
+        )(
+            quiet=True,
+            value_threshold=background_value / 100.0,
+            sat_threshold=background_saturation / 100.0,
+        )
+        # 8 bits per channel avoid quantization artifacts,
+        # such as converting [255, 255, 255] to [254, 254, 254],
+        bg_color = noteshrink.get_bg_color(pixel_colors, bits_per_channel=8)
+        fg_mask = noteshrink.get_fg_mask(bg_color, pixel_colors, options)
+        if fg_mask.any():
+            masked_image = pixel_colors[fg_mask]
+        else:
+            masked_image = pixel_colors
+        centers, _ = kmeans(masked_image, n_colors - 1)
+        # We need to guarantee that the first color returned is bg_color
+        # and that colors are all unique
+        bg_color = np.array(bg_color, dtype=np.uint8)
+        palette = np.unique(centers.astype(np.uint8), axis=0).astype(np.uint8)
+        palette = palette[np.all(palette - bg_color, axis=1)]
+        return np.vstack((bg_color, palette))
     else:
-        masked_image = image
-    centers, _ = kmeans(masked_image, n_colors - 1)
-    # We need to guarantee that the first color returned is bg_color
-    # and that colors are all unique
-    bg_color = np.array(bg_color, dtype=np.uint8)
-    palette = np.unique(centers.astype(np.uint8), axis=0).astype(np.uint8)
-    palette = palette[np.all(palette - bg_color, axis=1)]
-    return np.vstack((bg_color, palette))
+        if method == 'kmeans':
+            palette, _ = kmeans(pixel_colors, n_colors)
+        else:
+            img = PIL.Image.fromarray(np.array([pixel_colors])[:, :, ::-1],
+                                      mode='RGB')
+            quant = img.quantize(colors=n_colors,
+                                 method=get_quantize_method(method))
+            quant_palette = quant.getpalette()[:3 * n_colors]
+            palette = np.array(quant_palette).reshape((n_colors, 3))
+        return unique(palette, axis=0).astype(np.uint8)
+
+
+def get_quantize_method(method):
+    """Transform a string ('median', 'octree', 'linear', 'max') to the
+    corresponding PIL quantize method constant"""
+    if method == 'median':
+        return PIL.Image.MEDIANCUT
+    elif method == 'octree':
+        return PIL.Image.FASTOCTREE
+    else:  # method in ('linear', 'max', 'maxcoverage'):
+        return PIL.Image.MAXCOVERAGE
+
+
+def unique(array, axis=None):
+    """Like np.unique but preserving order of first apparition"""
+    uniques, indices = np.unique(array, axis=axis, return_index=True)
+    return uniques[np.argsort(indices)]
 
 
 def kmeans(X, n_clusters, **kwargs):

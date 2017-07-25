@@ -171,6 +171,18 @@ def denoise(image, value):
               default=8,
               help='Number of output colors. Ranges from 2 to 128. '
                    'Defaults to 8.')
+@click.option('-m', '--method',
+              type=click.Choice(['auto', 'kmeans', 'median', 'linear', 'max',
+                                 'octree']),
+              default='auto',
+              help='Method for computing the palette. \'auto\' runs an '
+                   'optimized K-Means algorithm by sampling the histogram and '
+                   'detecting the background color first; \'kmeans\' performs '
+                   'a clusterization of the existing colors using the K-Means '
+                   'algorithm; \'median\' refers to the median cut algorithm; '
+                   ' \'max\' runs a maximum coverage process (also aliased '
+                   'as \'linear\'); and \'octree\' executes a fast octree '
+                   'quantization algorithm. Defaults to \'auto\'.')
 @click.option('-f', '--sample-fraction', type=click.IntRange(1, 100),
               default=5,
               help='Percentage of pixels to sample. Ranges from 0 to 100. '
@@ -184,7 +196,7 @@ def denoise(image, value):
               help='Threshold saturation to consider a pixel background. '
                    'Ranges from 0 to 100. Defaults to 20.')
 @io_handler('histogram')
-def palette(histogram, colors, sample_fraction, background_value,
+def palette(histogram, colors, method, sample_fraction, background_value,
             background_saturation):
     """Extract a palette of colors from HISTOGRAM.
 
@@ -200,20 +212,23 @@ def palette(histogram, colors, sample_fraction, background_value,
     """
     histogram = parse_histogram(histogram)
     return histogram_palette(
-        histogram, n_colors=colors,
+        histogram, n_colors=colors, method=method,
         sample_fraction=sample_fraction, background_value=background_value,
         background_saturation=background_saturation).tolist()
 
 
 @main.command()
 @click.argument("colors", required=False, type=click.IntRange(2, 128))
-@click.option('-m', '--method', type=click.Choice(['kmeans', 'linear']),
+@click.option('-m', '--method',
+              type=click.Choice(['kmeans', 'median', 'linear', 'max',
+                                 'octree']),
               default='kmeans',
               help='Method for computing the palette. \'kmeans\' performs '
                    'a clusterization of the existing colors using the K-Means '
-                   'algorithm; \'linear\' tries to quantize colors in a '
-                   'linear scale, therefore will approximate to the next '
-                   'power of 2. Defaults to \'kmeans\'.')
+                   'algorithm; \'median\' refers to the median cut algorithm; '
+                   ' \'max\' runs a maximum coverage process (also aliased '
+                   'as \'linear\'); and \'octree\' executes a fast octree '
+                   'quantization algorithm. Defaults to \'kmeans\'.')
 @click.option('-p', '--palette', callback=parse_palette,
               default=None,
               help='Local file, URL, or JSON string representing a palette of '
