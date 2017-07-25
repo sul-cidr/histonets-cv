@@ -536,6 +536,13 @@ class TestHistonets(unittest.TestCase):
         binarized = histonets.binarize_image(image, method='otsu')
         assert np.array_equal(image_binarized, binarized)
 
+    def test_binarize_boolean_method(self):
+        image = cv2.imread(fixtures_path('map.png'))
+        image_binarized = cv2.imread(fixtures_path('map_boolean.png'), 0)
+        binarized = histonets.binarize_image(image, method='boolean',
+                                             threshold=160)
+        assert np.array_equal(image_binarized, binarized)
+
     def test_skeletonize(self):
         image = cv2.imread(fixtures_path('map.png'))
         for dilation in (None, 13):

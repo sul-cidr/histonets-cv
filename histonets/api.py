@@ -12,6 +12,7 @@ from skimage import exposure
 from skimage import feature
 from skimage import morphology
 from skimage import filters
+from sklearn import preprocessing
 
 from .utils import (
     convert,
@@ -276,8 +277,7 @@ def remove_ridges(image, width=6, threshold=160, dilation=3,
     hxx, hxy, hyy = feature.hessian_matrix(gray_image, sigma=sigma, order='xy')
     large_eigenvalues, _ = feature.hessian_matrix_eigvals(hxx, hxy, hyy)
     mask = convert(large_eigenvalues)
-    mask[mask > threshold] = 255
-    mask[mask <= threshold] = 0
+    mask = binarize_image(mask, method='boolean', threshold=threshold)
     if dilation:
         dilation_kernel = np.ones((dilation, dilation), np.uint8)
         mask = cv2.dilate(mask, dilation_kernel)
@@ -299,8 +299,7 @@ def remove_blobs(image, min_area=0, max_area=sys.maxsize, threshold=128,
         method = cv2.LINE_AA
     else:  # 8-connected
         method = cv2.LINE_8
-    gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    _, mono_image = cv2.threshold(gray_image, threshold, 255, 0)
+    mono_image = binarize_image(image, method='boolean', threshold=threshold)
     _, all_contours, _ = cv2.findContours(mono_image, cv2.RETR_LIST,
                                           cv2.CHAIN_APPROX_SIMPLE)
     contours = np.array([contour for contour in all_contours
@@ -313,8 +312,11 @@ def remove_blobs(image, min_area=0, max_area=sys.maxsize, threshold=128,
 @image_as_array
 def binarize_image(image, method='li', **kwargs):
     """Binarize image using one of the available methods: 'isodata',
-    'li', 'otsu', and 'sauvola'. Defaults to 'li'. Extra keyword arguments are
-    passed in as is to the corresponding sciki-image thresholding function.
+    'li', 'otsu', 'sauvola', and 'boolean'. Defaults to 'li'.
+    Extra keyword arguments are passed in as is to the corresponding
+    scikit-image thresholding function. The 'boolean' method refers to simple
+    thresholding from a grey-scale image. If a 'threshold' kwarg is not passed
+    to the 'boolean' method, 'li' thresholding is performed.
     For reference
     Sezgin M. and Sankur B. (2004) "Survey over Image Thresholding Techniques
     and Quantitative Performance Evaluation" Journal of Electronic Imaging,
@@ -326,6 +328,10 @@ def binarize_image(image, method='li', **kwargs):
     if np.unique(image).size == 2:
         # image is already binary
         return image
+    boolean_threshold = kwargs.get('threshold', None)
+    if method == 'boolean' and boolean_threshold:
+        preprocessing.binarize(image, threshold=boolean_threshold, copy=False)
+        return convert(image)
     if method not in ('sauvola', 'isodata', 'otsu', 'li'):
         method = 'li'
     thresh_func = getattr(filters.thresholding, "threshold_{}".format(method))
