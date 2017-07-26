@@ -258,14 +258,14 @@ def select_colors(image, colors, return_mask=False):
 
 @image_as_array
 @output_as_mask
-def remove_ridges(image, width=6, threshold=160, dilation=3,
+def remove_ridges(image, width=6, threshold=160, dilation=1,
                   return_mask=False):
     """Detect ridges of width pixels using the highest eigenvector of the
     Hessian matrix, then create a binarized mask with threshold and remove
     it from image (set to black). Default values are optimized for text
     detection and removal.
 
-    A dilation kernel in pixels can be passed in to thicken the mask prior
+    A dilation radius in pixels can be passed in to thicken the mask prior
     to being applied."""
     gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     # The value of sigma is calculated according to Steger's work:
@@ -279,6 +279,7 @@ def remove_ridges(image, width=6, threshold=160, dilation=3,
     mask = convert(large_eigenvalues)
     mask = binarize_image(mask, method='boolean', threshold=threshold)
     if dilation:
+        dilation = (2 * dilation) + 1
         dilation_kernel = np.ones((dilation, dilation), np.uint8)
         mask = cv2.dilate(mask, dilation_kernel)
     return image, 255 - mask
@@ -360,6 +361,7 @@ def skeletonize_image(image, method=None, dilation=None, binarization=None):
     # scikit-image needs only 0's and 1's
     mono_image = binarize_image(image, method=binarization) / 255
     if dilation:
+        dilation = (2 * dilation) + 1
         dilation_kernel = np.ones((dilation, dilation), np.uint8)
         mono_image = cv2.morphologyEx(mono_image, cv2.MORPH_DILATE,
                                       dilation_kernel)
