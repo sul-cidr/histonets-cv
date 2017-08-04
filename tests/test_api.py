@@ -575,6 +575,10 @@ class TestHistonets(unittest.TestCase):
                 image_skeletonized = cv2.imread(fixtures_path(filename), 0)
                 assert np.array_equal(skeleton, image_skeletonized)
 
+    def test_skeletonize_all_black(self):
+        image = np.zeros((64, 64))
+        assert np.array_equal(image, histonets.skeletonize_image(image))
+
     def test_palette_from_histogram(self):
         histogram = {
             (10, 191, 147): 1000,
