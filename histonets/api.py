@@ -358,6 +358,9 @@ def skeletonize_image(image, method=None, dilation=None, binarization=None):
     A 'thin' operator is also available. For reference,
     see http://scikit-image.org/docs/dev/auto_examples/edges/plot_skeleton.html
     """
+    # if image is all one single color, return it
+    if len(np.unique(image)) == 1:
+        return image
     # scikit-image needs only 0's and 1's
     mono_image = binarize_image(image, method=binarization) / 255
     if dilation:
