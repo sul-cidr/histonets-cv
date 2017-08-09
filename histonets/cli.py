@@ -7,6 +7,8 @@ import cv2
 from .utils import (
     Choice,
     Image,
+    JSONStream,
+    edges_to_graph,
     get_images,
     get_mask_polygons,
     io_handler,
@@ -22,6 +24,7 @@ from .api import (
     adjust_brightness,
     adjust_contrast,
     binarize_image,
+    extract_edges,
     denoise_image,
     histogram_equalization,
     histogram_palette,
@@ -506,6 +509,53 @@ def skeletonize(image, method, dilation, binarization_method):
       histonets skeletonize -m thin -d 0 -b otsu file://...
     """
     return skeletonize_image(image, method, dilation, binarization_method)
+
+
+@main.command()
+@click.argument('regions', required=True, callback=JSONStream())
+@click.option('-sm', '--simplification-method',
+              type=Choice(['rdp', 'vw']),
+              default='rdp',
+              help='Specify the line simplification algorithm to reduce the '
+                   'number of pixels in each path. Available algorithms are '
+                   '\'rdp\' for the Ramer–Douglas–Peucker\'s algorithm, '
+                   'and \'vw\' for Visvalingam–Whyatt\'s algorithm. '
+                   'Defaults to \'rdp\'.')
+@click.option('-st', '--simplification-tolerance', type=click.IntRange(0, 10),
+              default=0,
+              help='Exponent of the inverse simplification method tolerance, '
+                   'e.g., 3 involves a tolerance of 10^(-3)). '
+                   'Ranges from 0 to 10. Defaults to 0.')
+@click.option('-f', '--format',
+              type=Choice(['edgelist', 'gexf', 'gml', 'graphml', 'nodelink']),
+              default='graphml',
+              help='Format to save the graph in. All formats are derived from '
+                   'NetworkX\'s "Reading and Writing graphs": '
+                   'http://networkx.readthedocs.io/en/stable/reference/'
+                   'readwrite.html. Defaults to \'graphml\'')
+@io_handler
+def graph(image, regions, simplification_method, simplification_tolerance,
+          format):
+    """Build a undirected graph using the center points of REGIONS as nodes
+    and the paths in the binary grid expressed in IMAGE as edges.
+
+    Example::
+
+      histonets graph '[[[50,50],[120,50]],[[120, 82],[50,82]]]' -sm vw file://
+
+    \b
+    - REGIONS is a path to a local (file://) or remote (http://, https://) JSON
+              file representing a list of bounding boxes expressed as two
+              [x, y] coordinates points in pixels with regards to IMAGE,
+              one for the top-left corner and a second for the bottom-left one.
+              For example, '[[[50, 50], [120, 50]], [[120, 82], [50, 82]]]' is
+              a list that contains two regions.
+    """
+    tolerance = 10 ** (-simplification_tolerance)
+    edges = extract_edges(image, regions,
+                          simplification_method=simplification_method,
+                          simplification_tolerance=tolerance)
+    return edges_to_graph(edges, fmt=format)
 
 
 if __name__ == "__main__":

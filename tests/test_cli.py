@@ -15,6 +15,7 @@ import tempfile
 import unittest
 
 import cv2
+import networkx as nx
 import numpy as np
 from click.testing import CliRunner
 
@@ -36,6 +37,20 @@ def decode_base64(base64_string):
     ).image
 
 
+def edgeset(graph):
+    # We remove property id since it is not consistent in GEXF format
+    return set([
+        tuple(
+            sorted([u, v])
+            + sorted((k, v) for k, v in props.items() if k != 'id'))
+        for u, v, props in graph.edges(data=True)
+    ])
+
+
+def nodeset(graph):
+    return sorted(graph.nodes(data=True))
+
+
 class TestHistonetsCli(unittest.TestCase):
     def setUp(self):
         self.image_url = 'http://httpbin.org/image/jpeg'
@@ -54,6 +69,7 @@ class TestHistonetsCli(unittest.TestCase):
         self.image_map = 'file://' + fixtures_path('map.png')
         self.image_map_ridges = ('file://'
                                  + fixtures_path('map_ridges_invert.png'))
+        self.image_grid = fixtures_path('grid.png')
         self.tmp_jpg = os.path.join(tempfile.gettempdir(), 'test.jpg')
         self.tmp_png = os.path.join(tempfile.gettempdir(), 'test.png')
         self.tmp_tiff = os.path.join(tempfile.gettempdir(), 'test.tiff')
@@ -615,3 +631,51 @@ class TestHistonetsCli(unittest.TestCase):
             [fixtures_path('palette.json')]
         ).output.strip()
         assert json.loads(result) == palette
+
+    def test_command_graph(self):
+        matches = [
+            ((0, 0), (3, 3)),
+            ((1, 11), (4, 14)),
+            ((8, 12), (11, 15)),
+        ]
+        regions = utils.serialize_json(matches)
+        result = self.runner.invoke(
+            cli.graph,
+            [regions, self.image_grid]
+        )
+        out = nx.parse_graphml(result.output.strip())
+        graph = nx.read_gml(fixtures_path('graph.gml'))
+        assert nodeset(out) == nodeset(graph)
+        assert edgeset(out) == edgeset(graph)
+
+    def test_command_graph_gexf(self):
+        matches = [
+            ((0, 0), (3, 3)),
+            ((1, 11), (4, 14)),
+            ((8, 12), (11, 15)),
+        ]
+        regions = utils.serialize_json(matches)
+        result = self.runner.invoke(
+            cli.graph,
+            [regions, '-f', 'gexf', self.image_grid]
+        )
+        out = nx.read_gexf(io.StringIO(result.output.strip()))
+        graph = nx.read_gexf(fixtures_path('graph.gexf'))
+        assert nodeset(out) == nodeset(graph)
+        assert edgeset(out) == edgeset(graph)
+
+    def test_command_graph_gexf_tolerance(self):
+        matches = [
+            ((0, 0), (3, 3)),
+            ((1, 11), (4, 14)),
+            ((8, 12), (11, 15)),
+        ]
+        regions = utils.serialize_json(matches)
+        result = self.runner.invoke(
+            cli.graph,
+            [regions, '-f', 'gexf', '-st', 0, self.image_grid]
+        )
+        out = nx.read_gexf(io.StringIO(result.output.strip()))
+        graph = nx.read_gexf(fixtures_path('graph.gexf'))
+        assert nodeset(out) == nodeset(graph)
+        assert edgeset(out) == edgeset(graph)
