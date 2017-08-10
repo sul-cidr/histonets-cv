@@ -272,6 +272,55 @@ Options:
                          otherwise.
   
 
+graph
+~~~~~
+Usage: histonets graph [OPTIONS] REGIONS [IMAGE]
+
+Build a undirected graph using the center points of REGIONS as nodes
+and the paths in the binary grid expressed in IMAGE as edges.
+
+Example::
+
+  histonets graph '[[[50,50],[120,50]],[[120, 82],[50,82]]]' -sm vw file://
+
+- REGIONS is a path to a local (file://) or remote (http://, https://) JSON
+          file representing a list of bounding boxes expressed as two
+          [x, y] coordinates points in pixels with regards to IMAGE,
+          one for the top-left corner and a second for the bottom-left one.
+          For example, '[[[50, 50], [120, 50]], [[120, 82], [50, 82]]]' is
+          a list that contains two regions.
+
+- IMAGE path to a local (file://) or remote (http://, https://) image file.
+  A Base64 string can also be piped as input image.
+
+Options:
+
+  -sm, --simplification-method [rdp|vw]
+                                  Specify the line simplification algorithm to
+                                  reduce the number of pixels in each path.
+                                  Available algorithms are 'rdp' for the
+                                  Ramer–Douglas–Peucker's algorithm, and 'vw'
+                                  for Visvalingam–Whyatt's algorithm. Defaults
+                                  to 'vw'.
+  -st, --simplification-tolerance INTEGER RANGE
+                                  Exponent of the inverse simplification
+                                  method tolerance, e.g., 3 involves a
+                                  tolerance of 10^(-3)). Ranges from 0 to 10.
+                                  Defaults to 0.
+  -f, --format [edgelist|gexf|gml|graphml|nodelink]
+                                  Format to save the graph in. All formats are
+                                  derived from NetworkX's "Reading and Writing
+                                  graphs": http://networkx.readthedocs.io/en/s
+                                  table/reference/readwrite.html. Defaults to
+                                  'graphml'
+  -o, --output FILENAME           File name to save the output. For images, if
+                                  the file extension is different than IMAGE,
+                                  a conversion is made. When not given,
+                                  standard output is used and images are
+                                  serialized using Base64; and to JSON
+                                  otherwise.
+  
+
 match
 ~~~~~
 Usage: histonets match [OPTIONS] TEMPLATES... [IMAGE]

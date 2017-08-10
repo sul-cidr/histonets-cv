@@ -8,6 +8,8 @@ import noteshrink
 import numpy as np
 import PIL
 from imutils import object_detection
+from itertools import combinations
+from simplification.cutil import simplify_coords, simplify_coords_vw
 from skimage import exposure
 from skimage import feature
 from skimage import morphology
@@ -16,11 +18,13 @@ from sklearn import preprocessing
 
 from .utils import (
     convert,
-    image_as_array,
+    get_inner_paths,
     get_palette,
+    get_quantize_method,
+    get_shortest_paths,
+    image_as_array,
     kmeans,
     match_template_mask,
-    get_quantize_method,
     output_as_mask,
     sample_histogram,
 )
@@ -397,3 +401,38 @@ def histogram_palette(histogram, n_colors=8, method='auto', sample_fraction=5,
         sampled_histogram, method=method,
         n_colors=n_colors, background_value=background_value,
         background_saturation=background_saturation)
+
+
+@image_as_array
+def extract_edges(image, regions, simplification_method=None,
+                  simplification_tolerance=1.0):
+    """Build a graph from edges expressed in a binary grid (0's representing
+    holes, 1's paths), and vertices as the center of regions expressed by the
+    the top-left corner and the down-right corner in (x, y) pixels coordinates
+    from the grid."""
+    if simplification_method == 'rdp':
+        simplify_func = simplify_coords
+    else:
+        simplify_func = simplify_coords_vw
+    grid = binarize_image(image)
+    grid |= get_inner_paths(grid, regions).toarray()
+    centers = {((cx1 + cx2) // 2, (cy1 + cy2) // 2): ((cx1, cy1), (cx2, cy2))
+               for (cx1, cy1), (cx2, cy2) in regions}
+    all_pairs = combinations(centers.keys(), 2)  # no repetition, no order
+    paths = get_shortest_paths(grid, all_pairs)
+    edges = []
+    for path in paths:
+        if path:
+            simplified_path = np.array(simplify_func(
+                path, simplification_tolerance
+            ), np.int)
+            edges.append({
+                'source': centers[path[0]],
+                'target': centers[path[-1]],
+                'source_center': path[0],
+                'target_center': path[-1],
+                'path': path,
+                'simplified_path': simplified_path,
+                'length': len(path) - 1
+            })
+    return edges
