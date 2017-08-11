@@ -391,8 +391,9 @@ def histogram_palette(histogram, n_colors=8, method='auto', sample_fraction=5,
                       background_value=25, background_saturation=20):
     """Return a palette of at most n_colors unique colors extracted
     after sampling histogram by sample_fraction."""
+    fraction = sample_fraction and sample_fraction / 100.0
     sampled_histogram = sample_histogram(histogram,
-                                         sample_fraction=sample_fraction)
+                                         sample_fraction=fraction)
     return get_palette(
         sampled_histogram, method=method,
         n_colors=n_colors, background_value=background_value,

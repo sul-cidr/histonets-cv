@@ -417,7 +417,8 @@ def get_palette(pixel_colors, n_colors, background_value=25,
             masked_image = pixel_colors[fg_mask]
         else:
             masked_image = pixel_colors
-        centers, _ = kmeans(masked_image, n_colors - 1)
+        distinct_colors = len(np.unique(pixel_colors))
+        centers, _ = kmeans(masked_image, min(distinct_colors, n_colors) - 1)
         # We need to guarantee that the first color returned is bg_color
         # and that colors are all unique
         bg_color = np.array(bg_color, dtype=np.uint8)
@@ -584,12 +585,12 @@ def sample_histogram(histogram, sample_fraction=0.05):
     colors = np.fromiter(histogram.keys(), dtype='i8,i8,i8', count=-1)
     counts = np.fromiter(histogram.values(), dtype=np.float32, count=-1)
     size = counts.sum()
-    weights = counts / size
-    if sample_fraction is None:
-        samples = (k * v for k, v in histogram.items())
-        fraction = size.astype(int)
-    else:
-        fraction = int(size * sample_fraction)
-        samples = np.random.choice(colors, size=fraction, p=weights)
+    samples = (k * v for k, v in histogram.items())
+    if sample_fraction:
+        # do not sample more than a 100 million pixels
+        fraction = int(min(size * min(sample_fraction, 1.0), 1e8))
+        if fraction:
+            weights = counts / size
+            samples = np.random.choice(colors, size=fraction, p=weights)
     unraveled = np.fromiter(chain.from_iterable(samples), np.uint8, count=-1)
-    return unraveled.reshape(fraction, 3)
+    return unraveled.reshape(-1, 3)
