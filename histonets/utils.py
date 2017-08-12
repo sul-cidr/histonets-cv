@@ -409,10 +409,13 @@ def get_palette(pixel_colors, n_colors, background_value=25,
             value_threshold=background_value / 100.0,
             sat_threshold=background_saturation / 100.0,
         )
-        # 8 bits per channel avoid quantization artifacts,
-        # such as converting [255, 255, 255] to [254, 254, 254],
-        bg_color = noteshrink.get_bg_color(pixel_colors, bits_per_channel=8)
-        fg_mask = noteshrink.get_fg_mask(bg_color, pixel_colors, options)
+        with warnings.catch_warnings(record=True):
+            warnings.filterwarnings('ignore', category=RuntimeWarning)
+            # 8 bits per channel avoid quantization artifacts,
+            # such as converting [255, 255, 255] to [254, 254, 254]
+            bg_color = noteshrink.get_bg_color(pixel_colors,
+                                               bits_per_channel=8)
+            fg_mask = noteshrink.get_fg_mask(bg_color, pixel_colors, options)
         if fg_mask.any():
             masked_image = pixel_colors[fg_mask]
         else:
