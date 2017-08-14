@@ -16,11 +16,13 @@ import unittest
 
 import click
 import cv2
+import networkx as nx
 import noteshrink
 import numpy as np
 from click.testing import CliRunner
 from collections import namedtuple
 from imutils import object_detection
+from networkx.readwrite import json_graph as nx_json_graph
 from sklearn.cluster import MiniBatchKMeans
 from sklearn.datasets.samples_generator import make_blobs
 
@@ -33,6 +35,20 @@ def fixtures_path(file, relative=False):
         return os.path.abspath(relative_path)
     else:
         return relative_path
+
+
+def edgeset(graph):
+    # We remove property id since it is not consistent in GEXF format
+    return set([
+        tuple(
+            sorted([u, v])
+            + sorted((k, v) for k, v in props.items() if k != 'id'))
+        for u, v, props in graph.edges(data=True)
+    ])
+
+
+def nodeset(graph):
+    return sorted(graph.nodes(data=True))
 
 
 class TestHistonetsUtils(unittest.TestCase):
@@ -480,3 +496,174 @@ main()
     def test_unique(self):
         assert (utils.unique(['b', 'b', 'b', 'a', 'a', 'c', 'c']).tolist()
                 == ['b', 'a', 'c'])
+
+    def test_get_inner_paths(self):
+        grid = np.array([
+            [0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 1, 1, 0, 0, 0],
+            [0, 1, 8, 8, 8, 0, 0],
+            [0, 1, 8, 8, 8, 1, 0],
+            [0, 0, 8, 8, 8, 0, 0],
+            [0, 0, 0, 1, 0, 0, 0],
+        ], dtype=bool)
+        regions = [((2, 2), (4, 4))]
+        output = 255 * np.array([
+            [0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 1, 1, 0, 0, 0],
+            [0, 0, 1, 1, 1, 0, 0],
+            [0, 0, 0, 1, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0],
+        ], dtype=np.uint8)
+        assert np.array_equal(utils.get_inner_paths(grid, regions).toarray(),
+                              output)
+
+    def test_grid_to_adjacency_matrix(self):
+        grid = np.array([
+            # 0  1  2
+            [1, 1, 1],  # 0
+            [1, 0, 1],  # 1
+            [0, 0, 1],  # 2
+        ], dtype=bool)
+        matrix = np.array([
+            # 00 01 02 10 11 12 20 21 22
+            [0, 1, 0, 1, 0, 0, 0, 0, 0],  # 00
+            [1, 0, 1, 1, 0, 1, 0, 0, 0],  # 01
+            [0, 1, 0, 0, 0, 1, 0, 0, 0],  # 02
+            [1, 1, 0, 0, 0, 0, 0, 0, 0],  # 10
+            [0, 0, 0, 0, 0, 0, 0, 0, 0],  # 11
+            [0, 1, 1, 0, 0, 0, 0, 0, 1],  # 12
+            [0, 0, 0, 0, 0, 0, 0, 0, 0],  # 20
+            [0, 0, 0, 0, 0, 0, 0, 0, 0],  # 21
+            [0, 0, 0, 0, 0, 1, 0, 0, 0],  # 22
+        ], dtype=bool)
+        assert np.array_equal(utils.grid_to_adjacency_matrix(grid).toarray(),
+                              matrix)
+
+    def test_shortest_paths(self):
+        grid = np.array([
+            # 0  1  2
+            [1, 1, 1],  # 0
+            [1, 0, 1],  # 1
+            [0, 0, 1],  # 2
+        ], dtype=bool)
+        lookfor = ((0, 1), (2, 0)), ((2, 0), (2, 2)), ((0, 1), (2, 2))
+        paths = [
+            [(0, 1), (1, 0), (2, 0)],
+            [(2, 0), (2, 1), (2, 2)],
+            [(0, 1), (1, 0), (2, 1), (2, 2)],
+        ]
+        assert np.array_equal(paths, utils.get_shortest_paths(grid, lookfor))
+
+    def test_shortest_paths_no_path(self):
+        grid = np.array([
+            # 0  1  2
+            [1, 0, 1],  # 0
+            [1, 0, 1],  # 1
+            [0, 0, 1],  # 2
+        ], dtype=bool)
+        lookfor = ((0, 0), (2, 2)),
+        paths = [[]]
+        assert np.array_equal(paths, utils.get_shortest_paths(grid, lookfor))
+
+    def test_json_numpy_encoder_int(self):
+        assert (json.dumps(np.uint(10), cls=utils.JSONNumpyEncoder)
+                == json.dumps(10))
+
+    def test_json_numpy_encoder_bool(self):
+        assert (json.dumps(np.bool_(True), cls=utils.JSONNumpyEncoder)
+                == json.dumps(True))
+
+    def test_json_numpy_encoder_float(self):
+        assert (json.dumps(np.float32(10.0), cls=utils.JSONNumpyEncoder)
+                == json.dumps(10.0))
+
+    def test_json_numpy_encoder_int_array(self):
+        array = np.arange(10, dtype=np.uint).reshape(2, 5)
+        assert (json.dumps(array, cls=utils.JSONNumpyEncoder)
+                == json.dumps(array.tolist()))
+
+    def test_json_numpy_encoder_bool_array(self):
+        array = np.ones((2, 5), dtype=np.bool_)
+        assert (json.dumps(array, cls=utils.JSONNumpyEncoder)
+                == json.dumps(array.tolist()))
+
+    def test_json_numpy_encoder_float_array(self):
+        array = np.arange(10, dtype=np.float).reshape(2, 5)
+        assert (json.dumps(array, cls=utils.JSONNumpyEncoder)
+                == json.dumps(array.tolist()))
+
+    def test_json_numpy_encoder_tuple_array(self):
+        assert (json.dumps((1, 2), cls=utils.JSONNumpyEncoder)
+                == json.dumps((1, 2)))
+
+    def test_json_numpy_encoder_dict_array(self):
+        array = np.arange(10, dtype=np.float).reshape(2, 5)
+        assert (json.dumps({'a': array}, cls=utils.JSONNumpyEncoder)
+                == json.dumps({'a': array.tolist()}))
+
+    def test_serialize_json(self):
+        array = np.arange(10, dtype=np.uint).reshape(2, 5)
+        assert (utils.serialize_json(array)
+                == json.dumps(array.tolist()))
+
+    def test_edges_to_graph(self):
+        graph = nx.read_graphml(fixtures_path('graph.graphml'))
+        with open(fixtures_path('graph.json'), 'r') as json_graph:
+            edges = json.load(json_graph)
+            out = nx.parse_graphml(utils.edges_to_graph(edges))
+        assert nodeset(out) == nodeset(graph)
+        assert edgeset(out) == edgeset(graph)
+
+    def test_edges_to_graph_defaults_to_graphml(self):
+        with open(fixtures_path('graph.json'), 'r') as json_graph:
+            edges = json.load(json_graph)
+            out = nx.parse_graphml(utils.edges_to_graph(edges))
+            graph = nx.parse_graphml(utils.edges_to_graph(edges,
+                                                          fmt='graphml'))
+        assert nodeset(out) == nodeset(graph)
+        assert edgeset(out) == edgeset(graph)
+
+    def test_edges_to_graph_graphml(self):
+        graph = nx.read_graphml(fixtures_path('graph.graphml'))
+        with open(fixtures_path('graph.json'), 'r') as json_graph:
+            edges = json.load(json_graph)
+            out = nx.parse_graphml(utils.edges_to_graph(edges, fmt='graphml'))
+        assert nodeset(out) == nodeset(graph)
+        assert edgeset(out) == edgeset(graph)
+
+    def test_edges_to_graph_gml(self):
+        graph = nx.read_gml(fixtures_path('graph.gml'))
+        with open(fixtures_path('graph.json'), 'r') as json_graph:
+            edges = json.load(json_graph)
+            out = nx.parse_gml(utils.edges_to_graph(edges, fmt='gml'))
+        assert nodeset(out) == nodeset(graph)
+        assert edgeset(out) == edgeset(graph)
+
+    def test_edges_to_graph_gexf(self):
+        graph = nx.read_gexf(fixtures_path('graph.gexf'))
+        with open(fixtures_path('graph.json'), 'r') as json_graph:
+            edges = json.load(json_graph)
+            out = nx.read_gexf(io.StringIO(utils.edges_to_graph(edges,
+                                                                fmt='gexf')))
+        assert nodeset(out) == nodeset(graph)
+        assert edgeset(out) == edgeset(graph)
+
+    def test_edges_to_graph_edgelist(self):
+        graph = nx.read_edgelist(fixtures_path('graph.edgelist'))
+        with open(fixtures_path('graph.json'), 'r') as json_graph:
+            edges = json.load(json_graph)
+            out = nx.parse_edgelist(
+                    utils.edges_to_graph(edges, fmt='edgelist').split('\n'))
+        assert nodeset(out) == nodeset(graph)
+        assert edgeset(out) == edgeset(graph)
+
+    def test_edges_to_graph_nodelink(self):
+        with open(fixtures_path('graph.nodelink.json')) as nodelink_graph:
+            graph = nx_json_graph.node_link_graph(json.load(nodelink_graph))
+        with open(fixtures_path('graph.json'), 'r') as json_graph:
+            edges = json.load(json_graph)
+            out = nx_json_graph.node_link_graph(
+                utils.edges_to_graph(edges, fmt='nodelink'))
+        assert nodeset(out) == nodeset(graph)
+        assert edgeset(out) == edgeset(graph)
