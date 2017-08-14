@@ -612,6 +612,16 @@ class TestHistonets(unittest.TestCase):
         assert (sorted([tuple(c) for c in palette.tolist()])
                 == sorted(histogram.keys()))
 
+    def test_palette_from_histogram_low_counts(self):
+        histogram = {
+            (255, 255, 255): 5,
+            (0, 0, 0): 10,
+        }
+        palette = histonets.histogram_palette(histogram, n_colors=3,
+                                              sample_fraction=None)
+        assert (sorted([tuple(c) for c in palette.tolist()])
+                == sorted(histogram.keys()))
+
     def test_extract_edges(self):
         grid = cv2.imread(fixtures_path('grid.png'), 0)
         matches = [
