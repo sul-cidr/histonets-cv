@@ -14,11 +14,16 @@ from urllib.request import urlopen
 
 import click
 import cv2
+import networkx as nx
 import noteshrink
 import numpy as np
 import PIL
 from click.utils import get_os_args
+from networkx.readwrite import json_graph
+from scipy.sparse import lil_matrix
+from scipy.sparse.csgraph import floyd_warshall
 from skimage import filters as skfilters
+from skimage import draw
 from sklearn.cluster import MiniBatchKMeans
 from sklearn.preprocessing import minmax_scale
 from sklearn.utils.validation import DataConversionWarning
@@ -79,6 +84,22 @@ class JSONStream(Stream):
         except ValueError:
             content = super().convert(param=param, ctx=ctx, value=value)
             return json.loads(content)
+
+
+class JSONNumpyEncoder(json.JSONEncoder):
+    """Enable serialization of basic Numpy arrays"""
+
+    def default(self, obj):
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()
+        elif np.issubdtype(type(obj), np.float):
+            return float(obj)
+        elif np.issubdtype(type(obj), np.integer):
+            return int(obj)
+        elif np.issubdtype(type(obj), np.bool_):
+            return bool(obj)
+        else:
+            return super().default(obj)
 
 
 class Choice(click.Choice):
@@ -240,8 +261,10 @@ def io_handler(input=None, *args, **kwargs):
                 except cv2.error:
                     raise click.BadParameter(
                         'Image format output not supported')
+            elif isinstance(result, str):
+                result = local_encode(result)
             else:
-                result = local_encode(json.dumps(result))
+                result = local_encode(serialize_json(result))
             if output_param is not None:
                 output_param.write(result)
                 output_param.close()
@@ -594,3 +617,137 @@ def sample_histogram(histogram, sample_fraction=0.05):
             samples = np.random.choice(colors, size=fraction, p=weights)
     unraveled = np.fromiter(chain.from_iterable(samples), np.uint8, count=-1)
     return unraveled.reshape(-1, 3)
+
+
+def serialize_json(obj):
+    """Serializes object, containing Numpy basic arrays and types, to JSON"""
+    return json.dumps(obj, cls=JSONNumpyEncoder)
+
+
+def grid_to_adjacency_matrix(grid):
+    """Convert a boolean grid where 0's express holes and 1's connected pixel
+    into a sparse adjacency matrix representing the grid-graph.
+    Neighborhood for each pixel is calculated from its 8 more immediate
+    surrounding neighbors"""
+    _, n_cols = grid.shape
+    # lil is the most performance format to build a sparse matrix iteratively
+    matrix = lil_matrix(2 * (np.prod(grid.shape), ), dtype=np.bool)
+    for white_x, white_y in np.argwhere(grid):
+        source = n_cols * white_x + white_y
+        min_white_x = max(white_x - 1, 0)
+        min_white_y = max(white_y - 1, 0)
+        neighbors = grid[min_white_x: white_x + 2, min_white_y: white_y + 2]
+        for neighbor_x, neighbor_y in np.argwhere(neighbors):
+            white_neighbor_x = min_white_x + neighbor_x
+            white_neighbor_y = min_white_y + neighbor_y
+            if (white_x, white_y) != (white_neighbor_x, white_neighbor_y):
+                target = n_cols * white_neighbor_x + white_neighbor_y
+                matrix[source, target] = 1  # distance is always 1
+    # Once built, we convert it to compressed sparse columns or rows
+    return matrix.tocsc()  # or .tocsr()
+
+
+def get_shortest_paths(grid, look_for):
+    """Traverse the grid, where 0's represent holes and 1's paths, and return
+    the paths to get from sources to targets, expressed in look_for in the form
+    of ((start1, end1), (start2, end2)), where each 'start' and 'end'
+    are coordinates of the grid in the form [x, y] pairs"""
+    # Adapted from
+    # https://github.com/menpo/menpo/blob/v0.7.0/menpo/shape/graph.py
+    _, n_cols = grid.shape
+    matrix = grid_to_adjacency_matrix(grid)
+    _, predecessors = floyd_warshall(
+        matrix, unweighted=True, return_predecessors=True
+    )
+    # Distance of path is always len(path) - 1 since the graph is unweighted
+    paths = []
+    for start_end_centers in look_for:
+        (start_x, start_y), (end_x, end_y) = sorted(start_end_centers)
+        # Compress the coordinates to match the adjacency matrix indices
+        # Numpy array indices are [row, column] not [x, y]
+        start = start_x + start_y * n_cols
+        end = end_x + end_y * n_cols
+        if predecessors[start, end] < 0:
+            path = []
+        else:
+            path, step = [end], None
+            while step != start:
+                step = predecessors[start, path[-1]]
+                path.append(step)
+            path.reverse()
+        # Get the coordinates back from the compressed index
+        paths.append([(step % n_cols, step // n_cols) for step in path])
+    return paths
+
+
+def get_inner_paths(grid, regions):
+    """Create 1 pixel width paths connecting the loose ends surrounding the
+    regions to their center. Each region is defined by its top-left
+    and bottom-right corners points expressed in [x, y] coordinates. Grid must
+    be a black and white image"""
+    color = 255  # white
+    height, width = grid.shape
+    inner_paths = lil_matrix(grid.shape, dtype=np.uint8)
+    for (cx1, cy1), (cx2, cy2) in regions:
+        center = (cx1 + cx2) // 2, (cy1 + cy2) // 2
+        cx1_min = max(cx1 - 1, 0)
+        cy1_min = max(cy1 - 1, 0)
+        cx2_max = min(cx2 + 1, width - 1)
+        cy2_max = min(cy2 + 1, height - 1)
+        borders = (
+            # border, border_x, border_y, border_horizontal
+            (grid[cy1_min, cx1_min:cx2_max], cx1_min, cy1, True),  # top
+            (grid[cy2_max, cx1_min:cx2_max], cx1_min, cy2, True),  # bottom
+            (grid[cy1_min:cy2_max, cx1_min], cx1, cy1_min, False),  # left
+            (grid[cy1_min:cy2_max, cx2_max], cx2, cy1_min, False),  # right
+        )
+        for border, border_x, border_y, border_horizontal in borders:
+            for border_step in np.argwhere(border).ravel():
+                if border_horizontal:
+                    point = border_x + border_step, border_y
+                else:
+                    point = border_x, border_y + border_step
+                line = draw.line(point[1], point[0], center[1], center[0])
+                inner_paths[line] = color
+    return inner_paths.tocsc()
+
+
+def edges_to_graph(edges, fmt=None):
+    """Build a graph based on a list of edges and serialize it to format. Each
+    edge is a dictionary with at least keys defined for source_key and
+    target_key, expressing the source and the target of the edge, respectively.
+    The graph is built and serialized using NetworkX, therefore only a subset
+    of its  formats are available: 'edgelist', 'gexf', 'gml', 'graphml',
+    'nodelink'.
+    See http://networkx.readthedocs.io/en/stable/reference/readwrite.html
+    for more information."""
+    if fmt not in ('edgelist', 'gexf', 'gml', 'graphml', 'nodelink'):
+        fmt = 'graphml'
+    graph = nx.Graph()
+    for edge in edges:
+        source_id = "{},{}".format(*edge['source_center'])
+        source_attrs = {
+             'x': int(edge['source_center'][0]),
+             'y': int(edge['source_center'][1]),
+             'bbox': serialize_json(edge['source'])
+        }
+        graph.add_node(source_id, **source_attrs)
+        target_id = "{},{}".format(*edge['target_center'])
+        target_attrs = {
+             'x': int(edge['target_center'][0]),
+             'y': int(edge['target_center'][1]),
+             'bbox': serialize_json(edge['target'])
+        }
+        graph.add_node(target_id, **target_attrs)
+        # gml format only supports alphanumeric characters as keys
+        edge_attrs = {
+            'path': serialize_json(edge['path']),
+            'simplifiedpath': serialize_json(edge['simplified_path']),
+            'length': int(edge['length'])
+        }
+        graph.add_edge(source_id, target_id, **edge_attrs)
+    if fmt != 'nodelink':
+        generate_func = getattr(nx, "generate_{}".format(fmt))
+        return '\n'.join(generate_func(graph))
+    else:
+        return json_graph.node_link_data(graph)
