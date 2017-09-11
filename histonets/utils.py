@@ -56,7 +56,10 @@ class Stream(click.ParamType):
                 file_obj = open(value, local_mode)
             else:
                 url = urlparse(value)
-                if url.scheme not in self.SUPPORTED_SCHEMES:
+                if not url.scheme:
+                    raise click.BadParameter(
+                        'File \'{}\' not found'.format(url))
+                elif url.scheme not in self.SUPPORTED_SCHEMES:
                     raise click.BadParameter(
                         'Scheme \'{}\' not supported'.format(url.scheme))
                 else:
