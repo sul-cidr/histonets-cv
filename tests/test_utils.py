@@ -407,8 +407,12 @@ main()
         assert content == self.json_content
 
     def test_stream_bad_scheme(self):
-        with self.assertRaises(click.BadParameter):
+        with self.assertRaisesRegex(click.BadParameter, 'Scheme'):
             utils.Stream().convert(value='ftp://' + self.json)
+
+    def test_stream_file_not_found(self):
+        with self.assertRaisesRegex(click.BadParameter, 'File'):
+            utils.Stream().convert(value='notfound')
 
     def test_jsonstream(self):
         content = utils.JSONStream().convert(value=self.json)
