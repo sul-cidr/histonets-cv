@@ -524,25 +524,39 @@ main()
 
     def test_grid_to_adjacency_matrix(self):
         grid = np.array([
-            # 0  1  2
-            [1, 1, 1],  # 0
-            [1, 0, 1],  # 1
-            [0, 0, 1],  # 2
+            [1, 1, 1],
+            [1, 0, 1],
+            [0, 0, 1],
         ], dtype=bool)
         matrix = np.array([
-            # 00 01 02 10 11 12 20 21 22
-            [0, 1, 0, 1, 0, 0, 0, 0, 0],  # 00
-            [1, 0, 1, 1, 0, 1, 0, 0, 0],  # 01
-            [0, 1, 0, 0, 0, 1, 0, 0, 0],  # 02
-            [1, 1, 0, 0, 0, 0, 0, 0, 0],  # 10
-            [0, 0, 0, 0, 0, 0, 0, 0, 0],  # 11
-            [0, 1, 1, 0, 0, 0, 0, 0, 1],  # 12
-            [0, 0, 0, 0, 0, 0, 0, 0, 0],  # 20
-            [0, 0, 0, 0, 0, 0, 0, 0, 0],  # 21
-            [0, 0, 0, 0, 0, 1, 0, 0, 0],  # 22
+            [1, 1, 0, 1, 0, 0],
+            [1, 1, 1, 1, 1, 0],
+            [0, 1, 1, 0, 1, 0],
+            [1, 1, 0, 1, 0, 0],
+            [0, 1, 1, 0, 1, 1],
+            [0, 0, 0, 0, 1, 1],
         ], dtype=bool)
         assert np.array_equal(utils.grid_to_adjacency_matrix(grid).toarray(),
                               matrix)
+
+    def test_grid_to_adjacency_matrix_4_connected(self):
+        grid = np.array([
+            [1, 1, 1],
+            [1, 0, 1],
+            [0, 0, 1],
+        ], dtype=bool)
+        matrix = np.array([
+            [1, 1, 0, 1, 0, 0],
+            [1, 1, 1, 0, 0, 0],
+            [0, 1, 1, 0, 1, 0],
+            [1, 0, 0, 1, 0, 0],
+            [0, 0, 1, 0, 1, 1],
+            [0, 0, 0, 0, 1, 1]
+        ], dtype=bool)
+        assert np.array_equal(
+            utils.grid_to_adjacency_matrix(grid, neighborhood=4).toarray(),
+            matrix
+        )
 
     def test_shortest_paths(self):
         grid = np.array([
@@ -558,6 +572,12 @@ main()
             [(0, 1), (1, 0), (2, 1), (2, 2)],
         ]
         assert np.array_equal(paths, utils.get_shortest_paths(grid, lookfor))
+
+    def test_argfirst2D(self):
+        assert utils.argfirst2D(np.array([[1, 2], [1, 3]]), [1, 3]) == 1
+
+    def test_argfirst2D_not_found(self):
+        assert utils.argfirst2D(np.array([[1, 2], [1, 3]]), [0, 0]) is None
 
     def test_shortest_paths_no_path(self):
         grid = np.array([

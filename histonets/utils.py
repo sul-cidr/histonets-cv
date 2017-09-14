@@ -20,7 +20,7 @@ import numpy as np
 import PIL
 from click.utils import get_os_args
 from networkx.readwrite import json_graph
-from scipy.sparse import lil_matrix
+from scipy import sparse
 from scipy.sparse.csgraph import floyd_warshall
 from skimage import filters as skfilters
 from skimage import draw
@@ -630,27 +630,40 @@ def serialize_json(obj):
     return json.dumps(obj, cls=JSONNumpyEncoder)
 
 
-def grid_to_adjacency_matrix(grid):
+def grid_to_adjacency_matrix(grid, neighborhood=8):
     """Convert a boolean grid where 0's express holes and 1's connected pixel
     into a sparse adjacency matrix representing the grid-graph.
-    Neighborhood for each pixel is calculated from its 8 more immediate
-    surrounding neighbors"""
-    _, n_cols = grid.shape
-    # lil is the most performance format to build a sparse matrix iteratively
-    matrix = lil_matrix(2 * (np.prod(grid.shape), ), dtype=np.bool)
-    for white_x, white_y in np.argwhere(grid):
-        source = n_cols * white_x + white_y
-        min_white_x = max(white_x - 1, 0)
-        min_white_y = max(white_y - 1, 0)
-        neighbors = grid[min_white_x: white_x + 2, min_white_y: white_y + 2]
-        for neighbor_x, neighbor_y in np.argwhere(neighbors):
-            white_neighbor_x = min_white_x + neighbor_x
-            white_neighbor_y = min_white_y + neighbor_y
-            if (white_x, white_y) != (white_neighbor_x, white_neighbor_y):
-                target = n_cols * white_neighbor_x + white_neighbor_y
-                matrix[source, target] = 1  # distance is always 1
-    # Once built, we convert it to compressed sparse columns or rows
-    return matrix.tocsc()  # or .tocsr()
+    Neighborhood for each pixel is calculated from its 4 or 8 more immediate
+    surrounding neighbors (defaults to 8)."""
+    coords = np.argwhere(grid)
+    coords_x = coords[:, 0]
+    coords_y = coords[:, 1]
+    if neighborhood == 4:
+        matrix = sparse.vstack([
+            sparse.csc_matrix(
+                ((px == coords_x) & (np.abs(py - coords_y) == 1)) |
+                ((np.abs(px - coords_x) == 1) & (py == coords_y)),
+                dtype=int)
+            for px, py in coords
+        ])
+    else:
+        matrix = sparse.vstack([
+            sparse.csc_matrix(
+                (np.abs(px - coords_x) <= 1) & (np.abs(py - coords_y) <= 1),
+                dtype=int)
+            for px, py in coords
+        ])
+    matrix.setdiag(1)
+    return matrix
+
+
+def argfirst2D(arr, item):
+    """Return the index of the first element of the 2D array arr matching the
+    row item, or None if not found."""
+    try:
+        return np.where((arr == item).all(axis=1))[0][0]
+    except IndexError:
+        return None
 
 
 def get_shortest_paths(grid, look_for):
@@ -660,29 +673,27 @@ def get_shortest_paths(grid, look_for):
     are coordinates of the grid in the form [x, y] pairs"""
     # Adapted from
     # https://github.com/menpo/menpo/blob/v0.7.0/menpo/shape/graph.py
-    _, n_cols = grid.shape
+    coords = np.argwhere(grid)
     matrix = grid_to_adjacency_matrix(grid)
     _, predecessors = floyd_warshall(
-        matrix, unweighted=True, return_predecessors=True
+        matrix.tocsc(), unweighted=True, return_predecessors=True
     )
     # Distance of path is always len(path) - 1 since the graph is unweighted
     paths = []
     for start_end_centers in look_for:
-        (start_x, start_y), (end_x, end_y) = sorted(start_end_centers)
-        # Compress the coordinates to match the adjacency matrix indices
+        start_center, end_center = sorted(start_end_centers)
         # Numpy array indices are [row, column] not [x, y]
-        start = start_x + start_y * n_cols
-        end = end_x + end_y * n_cols
-        if predecessors[start, end] < 0:
-            path = []
-        else:
+        start = argfirst2D(coords, start_center[::-1])
+        end = argfirst2D(coords, end_center[::-1])
+        path = []
+        if (start and end) is not None and predecessors[start, end] >= 0:
             path, step = [end], None
             while step != start:
                 step = predecessors[start, path[-1]]
                 path.append(step)
             path.reverse()
-        # Get the coordinates back from the compressed index
-        paths.append([(step % n_cols, step // n_cols) for step in path])
+        # Get the coordinates for each step in path
+        paths.append([(coords[step][1], coords[step][0]) for step in path])
     return paths
 
 
@@ -693,7 +704,7 @@ def get_inner_paths(grid, regions):
     be a black and white image"""
     color = 255  # white
     height, width = grid.shape
-    inner_paths = lil_matrix(grid.shape, dtype=np.uint8)
+    inner_paths = sparse.lil_matrix(grid.shape, dtype=np.uint8)
     for (cx1, cy1), (cx2, cy2) in regions:
         center = (cx1 + cx2) // 2, (cy1 + cy2) // 2
         cx1_min = max(cx1 - 1, 0)
