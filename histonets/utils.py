@@ -638,23 +638,20 @@ def grid_to_adjacency_matrix(grid, neighborhood=8):
     coords = np.argwhere(grid)
     coords_x = coords[:, 0]
     coords_y = coords[:, 1]
+    # lil is the most performance format to build a sparse matrix iteratively
+    matrix = sparse.lil_matrix((0, coords.shape[0]), dtype=np.uint8)
     if neighborhood == 4:
-        matrix = sparse.vstack([
-            sparse.csc_matrix(
-                ((px == coords_x) & (np.abs(py - coords_y) == 1)) |
-                ((np.abs(px - coords_x) == 1) & (py == coords_y)),
-                dtype=int)
-            for px, py in coords
-        ])
+        for px, py in coords:
+            row = (((px == coords_x) & (np.abs(py - coords_y) == 1)) |
+                   ((np.abs(px - coords_x) == 1) & (py == coords_y)))
+            matrix = sparse.vstack([matrix, row])
     else:
-        matrix = sparse.vstack([
-            sparse.csc_matrix(
-                (np.abs(px - coords_x) <= 1) & (np.abs(py - coords_y) <= 1),
-                dtype=int)
-            for px, py in coords
-        ])
+        for px, py in coords:
+            row = (np.abs(px - coords_x) <= 1) & (np.abs(py - coords_y) <= 1)
+            matrix = sparse.vstack([matrix, row])
     matrix.setdiag(1)
-    return matrix
+    # Once built, we convert it to compressed sparse columns or rows
+    return matrix.tocsc()  # or .tocsr()
 
 
 def argfirst2D(arr, item):
@@ -676,7 +673,7 @@ def get_shortest_paths(grid, look_for):
     coords = np.argwhere(grid)
     matrix = grid_to_adjacency_matrix(grid)
     _, predecessors = floyd_warshall(
-        matrix.tocsc(), unweighted=True, return_predecessors=True
+        matrix, unweighted=True, return_predecessors=True
     )
     # Distance of path is always len(path) - 1 since the graph is unweighted
     paths = []
