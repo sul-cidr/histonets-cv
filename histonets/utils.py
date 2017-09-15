@@ -2,6 +2,7 @@
 import base64
 import collections
 import gzip
+import heapq
 import imghdr
 import json
 import locale
@@ -22,6 +23,7 @@ from click.utils import get_os_args
 from networkx.readwrite import json_graph
 from scipy import sparse
 from scipy.sparse.csgraph import floyd_warshall
+from scipy.spatial.distance import sqeuclidean as squared_euclidean
 from skimage import filters as skfilters
 from skimage import draw
 from sklearn.cluster import MiniBatchKMeans
@@ -667,7 +669,9 @@ def get_shortest_paths(grid, look_for):
     """Traverse the grid, where 0's represent holes and 1's paths, and return
     the paths to get from sources to targets, expressed in look_for in the form
     of ((start1, end1), (start2, end2)), where each 'start' and 'end'
-    are coordinates of the grid in the form [x, y] pairs"""
+    are coordinates of the grid in the form [x, y] pairs. It uses the
+    Floyd-Warshall algorithm to find first all shortest paths and then returns
+    only those in look_for"""
     # Adapted from
     # https://github.com/menpo/menpo/blob/v0.7.0/menpo/shape/graph.py
     coords = np.argwhere(grid)
@@ -691,6 +695,29 @@ def get_shortest_paths(grid, look_for):
             path.reverse()
         # Get the coordinates for each step in path
         paths.append([(coords[step][1], coords[step][0]) for step in path])
+    return paths
+
+
+def get_shortest_paths_astar(grid, look_for):
+    """Traverse the grid, where 0's represent holes and 1's paths, and return
+    the paths to get from sources to targets, expressed in look_for in the form
+    of ((start1, end1), (start2, end2)), where each 'start' and 'end'
+    are coordinates of the grid in the form [x, y] pairs. It uses the A*
+    algorithm and it only computes the paths in the look_for."""
+    paths = []
+    for start_end_centers in look_for:
+        start_center, end_center = sorted(start_end_centers)
+        # Numpy array indices are [row, column] not [x, y]
+        start = start_center[::-1]
+        end = end_center[::-1]
+        predecessors = astar(grid, start, end)
+        step = end
+        path = [step]
+        while step in predecessors:
+            step = predecessors[step]
+            path.append(step)
+        path.reverse()
+        paths.append([step[::-1] for step in path])
     return paths
 
 
@@ -765,3 +792,54 @@ def edges_to_graph(edges, fmt=None):
         return '\n'.join(generate_func(graph))
     else:
         return json_graph.node_link_data(graph)
+
+
+def astar(grid, start, end):
+    """Run A* algorithm from start to end to find a path in grid. It uses
+    squared Euclidean distance as the distance method and the cost estimate
+    heuristic, and it uses the Von Neumann method to assess the 8-neighbors.
+    Returns a predecessors dictionary from which a path can be built."""
+    dist_between = squared_euclidean
+    heuristic_cost_estimate = squared_euclidean
+    g_score = {start: 0}
+    f_score = {start: g_score[start] + heuristic_cost_estimate(start, end)}
+    openheap = [(f_score[start], start)]
+    openset = {start}
+    closedset = set()
+    predecessors = {}
+    while openset:
+        _, current = heapq.heappop(openheap)
+        openset.remove(current)
+        if current == end:
+            return predecessors
+        closedset.add(current)
+        x, y = current
+        height, width = grid.shape
+        # 8-neighbors
+        neighbors_8 = (
+            (x - 1, y - 1), (x - 1, y), (x - 1, y + 1),
+            (x, y - 1), (x, y + 1),
+            (x + 1, y - 1), (x + 1, y), (x + 1, y + 1),
+        )
+        neighbors = [
+            (px, py) for px, py in neighbors_8
+            if (height > px >= 0) and (width > py >= 0) and grid[px, py] > 0
+        ]
+        for neighbor in neighbors:
+            tentative_g_score = (
+                g_score[current] + dist_between(current, neighbor)
+            )
+            if (neighbor in closedset
+                    and tentative_g_score >= g_score[neighbor]):
+                continue
+            if (neighbor not in openset
+                    or tentative_g_score < g_score[neighbor]):
+                predecessors[neighbor] = current
+                g_score[neighbor] = tentative_g_score
+                f_score[neighbor] = (
+                    g_score[neighbor] + heuristic_cost_estimate(neighbor, end)
+                )
+                if neighbor not in openset:
+                    heapq.heappush(openheap, (f_score[neighbor], neighbor))
+                    openset.add(neighbor)
+    return {}

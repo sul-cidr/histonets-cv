@@ -647,6 +647,19 @@ class TestHistonets(unittest.TestCase):
         edges = histonets.extract_edges(grid, matches)
         assert json.loads(utils.serialize_json(edges)) == graph
 
+    def test_extract_edges_astar(self):
+        grid = cv2.imread(fixtures_path('grid.png'), 0)
+        matches = [
+            ((0, 0), (3, 3)),
+            ((1, 11), (4, 14)),
+            ((8, 12), (11, 15)),
+        ]
+        with open(fixtures_path('graph_astar.json'), 'r') as json_graph:
+            graph = json.load(json_graph)
+        edges = histonets.extract_edges(grid, matches,
+                                        pathfinding_method='astar')
+        assert json.loads(utils.serialize_json(edges)) == graph
+
     def test_extract_edges_rdp_tolerance(self):
         grid = cv2.imread(fixtures_path('grid.png'), 0)
         matches = [
