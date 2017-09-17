@@ -569,6 +569,8 @@ Options:
                                   image. For reference, see http://scikit-imag
                                   e.org/docs/dev/auto_examples/xx_applications
                                   /plot_thresholding.html. Defaults to 'li'.
+  -i, --invert                    Invert the black and white colors of the
+                                  binary image prior to skeletonization.
   -o, --output FILENAME           File name to save the output. For images, if
                                   the file extension is different than IMAGE,
                                   a conversion is made. When not given,

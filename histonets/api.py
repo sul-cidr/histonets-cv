@@ -14,6 +14,7 @@ from skimage import exposure
 from skimage import feature
 from skimage import morphology
 from skimage import filters
+from skimage.util import invert as invert_image
 from sklearn import preprocessing
 
 from .utils import (
@@ -311,7 +312,7 @@ def remove_blobs(image, min_area=0, max_area=sys.maxsize, threshold=128,
                          if min_area <= cv2.contourArea(contour) <= max_area])
     mask = np.ones(mono_image.shape, np.uint8)
     cv2.drawContours(mask, contours, -1, 0, -1, lineType=method)
-    return image, mask
+    return image, 255 * mask
 
 
 @image_as_array
@@ -347,7 +348,8 @@ def binarize_image(image, method='li', **kwargs):
 
 
 @image_as_array
-def skeletonize_image(image, method=None, dilation=None, binarization=None):
+def skeletonize_image(image, method=None, dilation=None, binarization=None,
+                      invert=False):
     """Extract a 1 pixel wide representation of image by morphologically
     thinning the white contiguous blobs (connected components).
     If image is not black and white, a binarization process is applied
@@ -367,6 +369,8 @@ def skeletonize_image(image, method=None, dilation=None, binarization=None):
         return image
     # scikit-image needs only 0's and 1's
     mono_image = binarize_image(image, method=binarization) / 255
+    if invert:
+        mono_image = invert_image(mono_image)
     if dilation:
         dilation = (2 * dilation) + 1
         dilation_kernel = np.ones((dilation, dilation), np.uint8)
