@@ -496,8 +496,11 @@ def binarize(image, method):
                    'For reference, see http://scikit-image.org/docs/dev'
                    '/auto_examples/xx_applications/plot_thresholding.html. '
                    'Defaults to \'li\'.')
+@click.option('-i', '--invert', is_flag=True,
+              help='Invert the black and white colors of the binary image '
+                   'prior to skeletonization.')
 @io_handler
-def skeletonize(image, method, dilation, binarization_method):
+def skeletonize(image, method, dilation, binarization_method, invert):
     """Extract the morphological skeleton of IMAGE. If the image is not black
     and white, it will be binarized using a binarization-method, which by
     default it's Li's algorithm (see the binarize command).
@@ -508,7 +511,8 @@ def skeletonize(image, method, dilation, binarization_method):
 
       histonets skeletonize -m thin -d 0 -b otsu file://...
     """
-    return skeletonize_image(image, method, dilation, binarization_method)
+    return skeletonize_image(image, method, dilation, binarization_method,
+                             invert)
 
 
 @main.command()

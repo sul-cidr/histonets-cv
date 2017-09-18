@@ -526,6 +526,12 @@ class TestHistonets(unittest.TestCase):
         removed = histonets.remove_blobs(image, 0, 100, method='antialiased')
         assert np.array_equal(mask, removed)
 
+    def test_remove_blobs_mask(self):
+        image = cv2.imread(fixtures_path('map_ridges_invert.png'))
+        mask = cv2.imread(fixtures_path('map_noblobs_mask.png'), 0)
+        removed_mask = histonets.remove_blobs(image, 0, 100, return_mask=True)
+        assert np.array_equal(mask, removed_mask)
+
     def test_binarize_already_binary_image(self):
         image = cv2.imread(fixtures_path('map_ridges_invert.png'), 0)
         binarized = histonets.binarize_image(image)
@@ -579,6 +585,13 @@ class TestHistonets(unittest.TestCase):
     def test_skeletonize_all_black(self):
         image = np.zeros((64, 64))
         assert np.array_equal(image, histonets.skeletonize_image(image))
+
+    def test_skeletonize_invert(self):
+        image = cv2.imread(fixtures_path('map.png'))
+        skeleton = histonets.skeletonize_image(image, invert=True)
+        filename = 'map_sk_regular_d0_invert.png'
+        image_skeletonized = cv2.imread(fixtures_path(filename), 0)
+        assert np.array_equal(skeleton, image_skeletonized)
 
     def test_palette_from_histogram(self):
         histogram = {

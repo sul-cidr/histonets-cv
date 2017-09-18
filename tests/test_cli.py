@@ -616,6 +616,15 @@ class TestHistonetsCli(unittest.TestCase):
         skeleton = encode_base64(fixtures_path('map_sk_thin_d0.png'))
         assert skeleton == result.output.strip()
 
+    def test_skeletonize_invert(self):
+        result = self.runner.invoke(
+            cli.skeletonize,
+            ['-m', 'regular', '-d', 0, '-i',
+             self.image_map],
+        )
+        skeleton = encode_base64(fixtures_path('map_sk_regular_d0_invert.png'))
+        assert skeleton == result.output.strip()
+
     def test_command_palette(self):
         palette = [[250, 67, 69], [123, 9, 108]]
         result = self.runner.invoke(
