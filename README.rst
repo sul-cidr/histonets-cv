@@ -295,6 +295,13 @@ Example::
 
 Options:
 
+  -pm, --pathfinding-method [floyd-warshall|astar]
+                                  Specify the pathfinding algorithm to create
+                                  edges between the matched templates.
+                                  Available algorithms are 'floyd-warshall'
+                                  for Floyd-Warshall all shortest paths
+                                  algorithm, and 'astar' for grid pathfinding
+                                  A*. Defaults to 'floyd-warshall'.
   -sm, --simplification-method [rdp|vw]
                                   Specify the line simplification algorithm to
                                   reduce the number of pixels in each path.

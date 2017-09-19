@@ -517,6 +517,14 @@ def skeletonize(image, method, dilation, binarization_method, invert):
 
 @main.command()
 @click.argument('regions', required=True, callback=JSONStream())
+@click.option('-pm', '--pathfinding-method',
+              type=Choice(['floyd-warshall', 'astar']),
+              default='floyd-warshall',
+              help='Specify the pathfinding algorithm to create edges between '
+                   'the matched templates. Available algorithms are '
+                   '\'floyd-warshall\' for Floyd-Warshall all shortest paths '
+                   'algorithm, and \'astar\' for grid pathfinding A*. '
+                   'Defaults to \'floyd-warshall\'.')
 @click.option('-sm', '--simplification-method',
               type=Choice(['rdp', 'vw']),
               default='vw',
@@ -538,8 +546,8 @@ def skeletonize(image, method, dilation, binarization_method, invert):
                    'http://networkx.readthedocs.io/en/stable/reference/'
                    'readwrite.html. Defaults to \'graphml\'')
 @io_handler
-def graph(image, regions, simplification_method, simplification_tolerance,
-          format):
+def graph(image, regions, pathfinding_method, simplification_method,
+          simplification_tolerance, format):
     """Build a undirected graph using the center points of REGIONS as nodes
     and the paths in the binary grid expressed in IMAGE as edges.
 
@@ -558,7 +566,8 @@ def graph(image, regions, simplification_method, simplification_tolerance,
     tolerance = 10 ** (-simplification_tolerance)
     edges = extract_edges(image, regions,
                           simplification_method=simplification_method,
-                          simplification_tolerance=tolerance)
+                          simplification_tolerance=tolerance,
+                          pathfinding_method=pathfinding_method)
     return edges_to_graph(edges, fmt=format)
 
 
