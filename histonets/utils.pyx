@@ -13,11 +13,13 @@ from itertools import chain
 from urllib.parse import urlparse
 from urllib.request import urlopen
 
+cimport cython
 import click
 import cv2
 import networkx as nx
 import noteshrink
 import numpy as np
+cimport numpy as np
 import PIL
 from click.utils import get_os_args
 from networkx.readwrite import json_graph
@@ -214,12 +216,17 @@ def parse_jsons(ctx, param, value):
         raise click.BadParameter("Polygon JSON malformed.")
 
 
+@cython.wraparound(True)
+@cython.boundscheck(True)
+@cython.cdivision(False)
+@cython.nonecheck(True)
+@cython.embedsignature(True)
+@cython.infer_types(False)
 def io_handler(input=None, *args, **kwargs):
     """Decorator to handle the 'input' argument and the 'output' option.
     If input is other than 'image', it is considered to be a JSON file or
     URL. Defaults to 'image'."""
     is_callable = callable(input)
-
     def decorator(f, *args, **kwargs):
         """Auxiliary decorator to allow io_handler be used with or without
         parameters"""
@@ -632,16 +639,19 @@ def serialize_json(obj):
     return json.dumps(obj, cls=JSONNumpyEncoder)
 
 
-def grid_to_adjacency_matrix(grid, neighborhood=8):
+@cython.wraparound(True)
+def grid_to_adjacency_matrix(np.ndarray grid, int neighborhood=8):
     """Convert a boolean grid where 0's express holes and 1's connected pixel
     into a sparse adjacency matrix representing the grid-graph.
     Neighborhood for each pixel is calculated from its 4 or 8 more immediate
     surrounding neighbors (defaults to 8)."""
-    coords = np.argwhere(grid)
-    coords_x = coords[:, 0]
-    coords_y = coords[:, 1]
+    cdef np.ndarray coords = np.argwhere(grid)
+    cdef np.ndarray coords_x = coords[:, 0]
+    cdef np.ndarray coords_y = coords[:, 1]
     # lil is the most performance format to build a sparse matrix iteratively
     matrix = sparse.lil_matrix((0, coords.shape[0]), dtype=np.uint8)
+    cdef np.ndarray row
+    cdef int px, py
     if neighborhood == 4:
         for px, py in coords:
             row = (((px == coords_x) & (np.abs(py - coords_y) == 1)) |
@@ -665,6 +675,7 @@ def argfirst2D(arr, item):
         return None
 
 
+@cython.wraparound(True)
 def get_shortest_paths(grid, look_for):
     """Traverse the grid, where 0's represent holes and 1's paths, and return
     the paths to get from sources to targets, expressed in look_for in the form

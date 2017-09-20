@@ -5,6 +5,7 @@ include LICENSE
 include README.rst
 
 include requirements.lock
+include histonets *.pyx *.c
 
 recursive-include tests *
 recursive-exclude * __pycache__
