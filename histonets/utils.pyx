@@ -805,11 +805,14 @@ def edges_to_graph(edges, fmt=None):
         return json_graph.node_link_data(graph)
 
 
-def astar(grid, start, end):
+def astar(np.ndarray grid, tuple start, tuple end):
     """Run A* algorithm from start to end to find a path in grid. It uses
     squared Euclidean distance as the distance method and the cost estimate
     heuristic, and it uses the Von Neumann method to assess the 8-neighbors.
     Returns a predecessors dictionary from which a path can be built."""
+    cdef int x, y, px, py, rows = grid.shape[0], columns = grid.shape[1]
+    cdef float tentative_g_score
+    cdef tuple current, neighbor, neighbors_8
     dist_between = squared_euclidean
     heuristic_cost_estimate = squared_euclidean
     g_score = {start: 0}
@@ -825,17 +828,16 @@ def astar(grid, start, end):
             return predecessors
         closedset.add(current)
         x, y = current
-        height, width = grid.shape
         # 8-neighbors
         neighbors_8 = (
             (x - 1, y - 1), (x - 1, y), (x - 1, y + 1),
             (x, y - 1), (x, y + 1),
             (x + 1, y - 1), (x + 1, y), (x + 1, y + 1),
         )
-        neighbors = [
+        neighbors = (
             (px, py) for px, py in neighbors_8
-            if (height > px >= 0) and (width > py >= 0) and grid[px, py] > 0
-        ]
+            if (rows > px >= 0) and (columns > py >= 0) and grid[px, py] > 0
+        )
         for neighbor in neighbors:
             tentative_g_score = (
                 g_score[current] + dist_between(current, neighbor)

@@ -14,8 +14,8 @@ def ensure(requirement):
 
 ensure('numpy>=1.13.0')
 ensure('Cython==0.26')
-import numpy
-from Cython.Build import cythonize
+import numpy  # noqa: E402
+from Cython.Build import cythonize  # noqa: E402
 
 
 with open('README.rst') as readme_file:
