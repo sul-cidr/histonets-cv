@@ -13,11 +13,13 @@ from itertools import chain
 from urllib.parse import urlparse
 from urllib.request import urlopen
 
+cimport cython
 import click
 import cv2
 import networkx as nx
 import noteshrink
 import numpy as np
+cimport numpy as np
 import PIL
 from click.utils import get_os_args
 from networkx.readwrite import json_graph
@@ -214,12 +216,17 @@ def parse_jsons(ctx, param, value):
         raise click.BadParameter("Polygon JSON malformed.")
 
 
+@cython.wraparound(True)
+@cython.boundscheck(True)
+@cython.cdivision(False)
+@cython.nonecheck(True)
+@cython.embedsignature(True)
+@cython.infer_types(False)
 def io_handler(input=None, *args, **kwargs):
     """Decorator to handle the 'input' argument and the 'output' option.
     If input is other than 'image', it is considered to be a JSON file or
     URL. Defaults to 'image'."""
     is_callable = callable(input)
-
     def decorator(f, *args, **kwargs):
         """Auxiliary decorator to allow io_handler be used with or without
         parameters"""
@@ -632,16 +639,19 @@ def serialize_json(obj):
     return json.dumps(obj, cls=JSONNumpyEncoder)
 
 
-def grid_to_adjacency_matrix(grid, neighborhood=8):
+@cython.wraparound(True)
+def grid_to_adjacency_matrix(np.ndarray grid, int neighborhood=8):
     """Convert a boolean grid where 0's express holes and 1's connected pixel
     into a sparse adjacency matrix representing the grid-graph.
     Neighborhood for each pixel is calculated from its 4 or 8 more immediate
     surrounding neighbors (defaults to 8)."""
-    coords = np.argwhere(grid)
-    coords_x = coords[:, 0]
-    coords_y = coords[:, 1]
+    cdef np.ndarray coords = np.argwhere(grid)
+    cdef np.ndarray coords_x = coords[:, 0]
+    cdef np.ndarray coords_y = coords[:, 1]
     # lil is the most performance format to build a sparse matrix iteratively
     matrix = sparse.lil_matrix((0, coords.shape[0]), dtype=np.uint8)
+    cdef np.ndarray row
+    cdef int px, py
     if neighborhood == 4:
         for px, py in coords:
             row = (((px == coords_x) & (np.abs(py - coords_y) == 1)) |
@@ -665,6 +675,7 @@ def argfirst2D(arr, item):
         return None
 
 
+@cython.wraparound(True)
 def get_shortest_paths(grid, look_for):
     """Traverse the grid, where 0's represent holes and 1's paths, and return
     the paths to get from sources to targets, expressed in look_for in the form
@@ -794,11 +805,14 @@ def edges_to_graph(edges, fmt=None):
         return json_graph.node_link_data(graph)
 
 
-def astar(grid, start, end):
+def astar(np.ndarray grid, tuple start, tuple end):
     """Run A* algorithm from start to end to find a path in grid. It uses
     squared Euclidean distance as the distance method and the cost estimate
     heuristic, and it uses the Von Neumann method to assess the 8-neighbors.
     Returns a predecessors dictionary from which a path can be built."""
+    cdef int x, y, px, py, rows = grid.shape[0], columns = grid.shape[1]
+    cdef float tentative_g_score
+    cdef tuple current, neighbor, neighbors_8
     dist_between = squared_euclidean
     heuristic_cost_estimate = squared_euclidean
     g_score = {start: 0}
@@ -814,17 +828,16 @@ def astar(grid, start, end):
             return predecessors
         closedset.add(current)
         x, y = current
-        height, width = grid.shape
         # 8-neighbors
         neighbors_8 = (
             (x - 1, y - 1), (x - 1, y), (x - 1, y + 1),
             (x, y - 1), (x, y + 1),
             (x + 1, y - 1), (x + 1, y), (x + 1, y + 1),
         )
-        neighbors = [
+        neighbors = (
             (px, py) for px, py in neighbors_8
-            if (height > px >= 0) and (width > py >= 0) and grid[px, py] > 0
-        ]
+            if (rows > px >= 0) and (columns > py >= 0) and grid[px, py] > 0
+        )
         for neighbor in neighbors:
             tentative_g_score = (
                 g_score[current] + dist_between(current, neighbor)

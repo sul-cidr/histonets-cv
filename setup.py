@@ -1,7 +1,22 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+import pip
+import pkg_resources
+from setuptools import Extension, setup
 
-from setuptools import setup
+
+def ensure(requirement):
+    try:
+        pkg_resources.require(requirement)
+    except pkg_resources.ResolutionError:
+        pip.main(['install', requirement])
+
+
+ensure('numpy>=1.13.0')
+ensure('Cython==0.26')
+import numpy  # noqa: E402
+from Cython.Build import cythonize  # noqa: E402
+
 
 with open('README.rst') as readme_file:
     readme = readme_file.read()
@@ -34,6 +49,18 @@ setup(
             'histonets=histonets.cli:main'
         ]
     },
+    ext_modules=cythonize(
+        [Extension('*', ['histonets/*.pyx'])],
+        compiler_directives={
+            'boundscheck': False,
+            'wraparound': False,
+            'cdivision': True,
+            'nonecheck': False,
+            'embedsignature': True,
+            'infer_types': True,
+        }
+    ),
+    include_dirs=[numpy.get_include()],
     include_package_data=True,
     install_requires=requirements,
     license="Apache Software License 2.0",
