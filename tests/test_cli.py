@@ -657,6 +657,23 @@ class TestHistonetsCli(unittest.TestCase):
         assert nodeset(out) == nodeset(graph)
         assert edgeset(out) == edgeset(graph)
 
+    def test_command_graph_astar(self):
+        matches = [
+            ((0, 0), (3, 3)),
+            ((1, 11), (4, 14)),
+            ((8, 12), (11, 15)),
+        ]
+        regions = utils.serialize_json(matches)
+        result = self.runner.invoke(
+            cli.graph,
+            [regions, '-pm', 'astar', self.image_grid]
+        )
+
+        out = nx.parse_graphml(result.output.strip())
+        graph = nx.read_graphml(fixtures_path('graph_astar.graphml'))
+        assert nodeset(out) == nodeset(graph)
+        assert edgeset(out) == edgeset(graph)
+
     def test_command_graph_gexf(self):
         matches = [
             ((0, 0), (3, 3)),

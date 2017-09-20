@@ -23,6 +23,7 @@ from .utils import (
     get_palette,
     get_quantize_method,
     get_shortest_paths,
+    get_shortest_paths_astar,
     image_as_array,
     kmeans,
     match_template_mask,
@@ -410,7 +411,7 @@ def histogram_palette(histogram, n_colors=8, method='auto', sample_fraction=5,
 
 @image_as_array
 def extract_edges(image, regions, simplification_method=None,
-                  simplification_tolerance=1.0):
+                  simplification_tolerance=1.0, pathfinding_method=None):
     """Build a graph from edges expressed in a binary grid (0's representing
     holes, 1's paths), and vertices as the center of regions expressed by the
     the top-left corner and the down-right corner in (x, y) pixels coordinates
@@ -424,7 +425,10 @@ def extract_edges(image, regions, simplification_method=None,
     centers = {((cx1 + cx2) // 2, (cy1 + cy2) // 2): ((cx1, cy1), (cx2, cy2))
                for (cx1, cy1), (cx2, cy2) in regions}
     all_pairs = combinations(centers.keys(), 2)  # no repetition, no order
-    paths = get_shortest_paths(grid, all_pairs)
+    if pathfinding_method == 'astar':
+        paths = get_shortest_paths_astar(grid, all_pairs)
+    else:
+        paths = get_shortest_paths(grid, all_pairs)
     edges = []
     for path in paths:
         if path:

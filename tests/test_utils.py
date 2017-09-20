@@ -573,6 +573,22 @@ main()
         ]
         assert np.array_equal(paths, utils.get_shortest_paths(grid, lookfor))
 
+    def test_shortest_paths_astar(self):
+        grid = np.array([
+            # 0  1  2
+            [1, 1, 1],  # 0
+            [1, 0, 1],  # 1
+            [0, 0, 1],  # 2
+        ], dtype=bool)
+        lookfor = ((0, 1), (2, 0)), ((2, 0), (2, 2)), ((0, 1), (2, 2))
+        paths = [
+            [(0, 1), (1, 0), (2, 0)],
+            [(2, 0), (2, 1), (2, 2)],
+            [(0, 1), (1, 0), (2, 1), (2, 2)],
+        ]
+        assert np.array_equal(paths,
+                              utils.get_shortest_paths_astar(grid, lookfor))
+
     def test_argfirst2D(self):
         assert utils.argfirst2D(np.array([[1, 2], [1, 3]]), [1, 3]) == 1
 
