@@ -20,29 +20,29 @@ deploy:
       TWVuaGVMMzFIaUk5QlhKVloxNU1MLzlraHRnd1ZrWHVvMkcrMHNyb29kOU9VWWFodmhSSStpbHc9
   user: versae
   true:
-    condition: $TOXENV == py35
+    condition: $TOXENV == py36
     repo: sul-cidr/histonets-cv
     tags: true
 env:
-- TOXENV=py34
 - TOXENV=py35
+- TOXENV=py36
 - TOXENV=flake8
 - TOXENV=safety
 install: pip install -U tox "codecov>=1.4.0"
 language: python
 python:
-- 3.4
 - 3.5
+- 3.6
 matrix:
   exclude:
-  - env: TOXENV=py34
-    python: 3.5
   - env: TOXENV=py35
-    python: 3.4
+    python: 3.6
+  - env: TOXENV=py36
+    python: 3.5
   - env: TOXENV=flake8
-    python: 3.4
+    python: 3.5
   - env: TOXENV=safety
-    python: 3.4
+    python: 3.5
 addons:
   apt:
     packages:
