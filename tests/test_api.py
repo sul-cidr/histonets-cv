@@ -5,7 +5,7 @@
 test_api
 ----------------------------------
 
-Tests for `api` module.
+Tests for `histonets_cv.api` module.
 """
 import os
 import unittest
@@ -14,8 +14,8 @@ import cv2
 import json
 import numpy as np
 
-import histonets
-from histonets import utils
+import histonets_cv as histonets
+from histonets_cv import utils
 
 
 def fixtures_path(file):

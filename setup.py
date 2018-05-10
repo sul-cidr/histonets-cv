@@ -17,7 +17,7 @@ test_requirements = [
 ]
 
 setup(
-    name='histonets',
+    name='histonets-cv',
     version='0.1.0',
     description="Computer vision part of the Histonets project",
     long_description=readme + '\n\n' + history,
@@ -25,13 +25,12 @@ setup(
     author_email='versae@gmail.com',
     url='https://github.com/sul-cidr/histonets-cv',
     packages=[
-        'histonets',
+        'histonets_cv',
     ],
-    package_dir={'histonets':
-                 'histonets'},
+    package_dir={'histonets_cv': 'histonets_cv'},
     entry_points={
         'console_scripts': [
-            'histonets=histonets.cli:main'
+            'histonets=histonets_cv.cli:main'
         ]
     },
     include_package_data=True,

@@ -5,7 +5,7 @@
 test_utils
 ----------------------------------
 
-Tests for `histonets.utils` module.
+Tests for `histonets_cv.utils` module.
 """
 import io
 import json
@@ -26,7 +26,7 @@ from networkx.readwrite import json_graph as nx_json_graph
 from sklearn.cluster import MiniBatchKMeans
 from sklearn.datasets.samples_generator import make_blobs
 
-from histonets import utils
+from histonets_cv import utils
 
 
 def fixtures_path(file, relative=False):
@@ -265,7 +265,7 @@ class TestHistonetsUtils(unittest.TestCase):
         code = """
 import json
 import click
-from histonets import utils
+from histonets_cv import utils
 @click.group()
 def main():
     pass
