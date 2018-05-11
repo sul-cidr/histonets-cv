@@ -24,27 +24,42 @@ deploy:
     repo: sul-cidr/histonets-cv
     tags: true
 env:
-- TOXENV=py35
 - TOXENV=py36
+- TOXENV=py35
+- TOXENV=py34
 - TOXENV=flake8
 - TOXENV=safety
 install: pip install -U tox "codecov>=1.4.0"
 language: python
 python:
-- 3.5
 - 3.6
+- 3.5
+- 3.4
 matrix:
   exclude:
+  - env: TOXENV=py36
+    python: 3.5
+  - env: TOXENV=py36
+    python: 3.4
   - env: TOXENV=py35
     python: 3.6
-  - env: TOXENV=py36
+  - env: TOXENV=py35
+    python: 3.4
+  - env: TOXENV=py34
+    python: 3.6
+  - env: TOXENV=py34
     python: 3.5
   - env: TOXENV=flake8
     python: 3.5
+  - env: TOXENV=flake8
+    python: 3.4
   - env: TOXENV=safety
     python: 3.5
+  - env: TOXENV=safety
+    python: 3.4
 addons:
   apt:
+    update: true
     packages:
       - libblas-dev
       - liblapack-dev

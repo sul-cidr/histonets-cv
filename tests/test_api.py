@@ -645,7 +645,9 @@ class TestHistonets(unittest.TestCase):
         with open(fixtures_path('graph.json'), 'r') as json_graph:
             graph = json.load(json_graph)
         edges = histonets.extract_edges(grid, matches)
-        assert json.loads(utils.serialize_json(edges)) == graph
+        json_edges = json.loads(utils.serialize_json(edges))
+        assert (all(edge in json_edges for edge in graph)
+                and all(edge in graph for edge in json_edges))
 
     def test_extract_edges_astar(self):
         grid = cv2.imread(fixtures_path('grid.png'), 0)
@@ -658,7 +660,9 @@ class TestHistonets(unittest.TestCase):
             graph = json.load(json_graph)
         edges = histonets.extract_edges(grid, matches,
                                         pathfinding_method='astar')
-        assert json.loads(utils.serialize_json(edges)) == graph
+        json_edges = json.loads(utils.serialize_json(edges))
+        assert (all(edge in json_edges for edge in graph)
+                and all(edge in graph for edge in json_edges))
 
     def test_extract_edges_rdp_tolerance(self):
         grid = cv2.imread(fixtures_path('grid.png'), 0)
@@ -672,4 +676,6 @@ class TestHistonets(unittest.TestCase):
         edges = histonets.extract_edges(grid, matches,
                                         simplification_method='rdp',
                                         simplification_tolerance=0.1)
-        assert json.loads(utils.serialize_json(edges)) == graph
+        json_edges = json.loads(utils.serialize_json(edges))
+        assert (all(edge in json_edges for edge in graph)
+                and all(edge in graph for edge in json_edges))
