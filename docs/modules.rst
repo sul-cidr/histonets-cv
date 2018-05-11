@@ -1,7 +1,7 @@
-histonets
-=========
+histonets_cv
+============
 
 .. toctree::
    :maxdepth: 4
 
-   histonets
+   histonets_cv

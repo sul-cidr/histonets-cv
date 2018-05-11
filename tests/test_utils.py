@@ -5,7 +5,7 @@
 test_utils
 ----------------------------------
 
-Tests for `histonets.utils` module.
+Tests for `histonets_cv.utils` module.
 """
 import io
 import json
@@ -26,7 +26,7 @@ from networkx.readwrite import json_graph as nx_json_graph
 from sklearn.cluster import MiniBatchKMeans
 from sklearn.datasets.samples_generator import make_blobs
 
-from histonets import utils
+from histonets_cv import utils
 
 
 def fixtures_path(file, relative=False):
@@ -100,15 +100,15 @@ class TestHistonetsUtils(unittest.TestCase):
 
     def test_get_images_stdin(self):
         cmd = ("python tests/encode_image.py -i {}"
-               " | histonets brightness 150"
-               " | histonets contrast 150".format(
+               " | python -m histonets_cv.cli brightness 150"
+               " | python -m histonets_cv.cli contrast 150".format(
                     self.image_png
                 ))
         ps = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE,
                               stderr=subprocess.STDOUT)
         output = ps.communicate()[0].decode()
         with io.open(self.image_5050_b64) as image_b64:
-            assert output == image_b64.read()
+            assert output.strip() == image_b64.read().strip()
 
     def test_local_encoding(self):
         string = 'Ñoño'
@@ -265,7 +265,7 @@ class TestHistonetsUtils(unittest.TestCase):
         code = """
 import json
 import click
-from histonets import utils
+from histonets_cv import utils
 @click.group()
 def main():
     pass

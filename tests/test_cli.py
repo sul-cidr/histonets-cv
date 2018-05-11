@@ -5,7 +5,7 @@
 test_cli
 ----------------------------------
 
-Tests for `histonets.cli` module.
+Tests for `histonets_cv.cli` module.
 """
 import base64
 import io
@@ -19,7 +19,7 @@ import networkx as nx
 import numpy as np
 from click.testing import CliRunner
 
-from histonets import cli, utils
+from histonets_cv import cli, utils
 
 
 def fixtures_path(file):
