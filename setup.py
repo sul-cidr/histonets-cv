@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import setuptools
 from setuptools import setup
 
 with open('README.rst') as readme_file:
@@ -12,18 +11,6 @@ with open('HISTORY.rst') as history_file:
 with open('requirements.lock') as requirements_file:
     requirements = requirements_file.read().splitlines()
 extras = {}
-
-# Handling the weird versioning system of simplification
-if int(setuptools.__version__.split(".", 1)[0]) < 18:
-    import sys
-    if sys.version_info[0:2] == (3, 5):
-        requirements.remove("simplification>=0.2.11")
-        requirements.append("simplification")
-else:
-    requirements.remove("simplification>=0.2.11")
-    extras[":python_version<'3.5'"] = ["simplification==0.2.11"]
-    extras[":python_version=='3.5'"] = ["simplification"]
-    extras[":python_version>'3.5'"] = ["simplification==0.2.11"]
 
 test_requirements = [
     # TODO: put package test requirements here
