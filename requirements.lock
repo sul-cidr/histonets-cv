@@ -6,5 +6,5 @@ scipy>=1.1
 scikit-learn>=0.19.1
 noteshrink>=0.1.1
 imutils>=0.4.6
-simplification>=0.2.1
+simplification
 networkx==2.1
