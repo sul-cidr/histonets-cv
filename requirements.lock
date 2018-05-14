@@ -1,10 +1,10 @@
 click>=6.7
-numpy>=1.14.3
+numpy>=1.14
 opencv-python>=3.1,<3.2
-scikit-image>=0.13.1
+scikit-image>=0.13
 scipy>=1.1
-scikit-learn>=0.19.1
-noteshrink>=0.1.1
-imutils>=0.4.6
-simplification>=0.2.11
+scikit-learn>=0.19
+noteshrink>=0.1
+imutils>=0.4
+simplification>=0.2
 networkx==2.1
