@@ -4,10 +4,29 @@ import sys
 import click
 import cv2
 
+from .api import (
+    adjust_brightness,
+    adjust_contrast,
+    auto_clean,
+    binarize_image,
+    color_reduction,
+    denoise_image,
+    dilate_image,
+    extract_edges,
+    histogram_equalization,
+    histogram_palette,
+    match_templates,
+    remove_blobs,
+    remove_ridges,
+    select_colors,
+    skeletonize_image,
+    smooth_image,
+)
 from .utils import (
     Choice,
     Image,
     JSONStream,
+    RAW,
     edges_to_graph,
     get_images,
     get_mask_polygons,
@@ -18,24 +37,6 @@ from .utils import (
     parse_jsons,
     parse_palette,
     parse_pipeline_json,
-    RAW,
-)
-from .api import (
-    adjust_brightness,
-    adjust_contrast,
-    binarize_image,
-    extract_edges,
-    denoise_image,
-    histogram_equalization,
-    histogram_palette,
-    smooth_image,
-    color_reduction,
-    auto_clean,
-    match_templates,
-    select_colors,
-    remove_ridges,
-    remove_blobs,
-    skeletonize_image,
 )
 
 
@@ -569,6 +570,43 @@ def graph(image, regions, pathfinding_method, simplification_method,
                           simplification_tolerance=tolerance,
                           pathfinding_method=pathfinding_method)
     return edges_to_graph(edges, fmt=format)
+
+
+@main.command()
+@click.option('-d', '--dilation', type=click.IntRange(0, 100),
+              default=1,
+              help='Dilation radius to thicken the binarized image prior to '
+                   'perform skeletonization. '
+                   'Ranges from 0 to 100. Defaults to 6.')
+@click.option('-p', '--passes', type=click.IntRange(0, 100),
+              default=1,
+              help='Number of times the dilation is applied. '
+                   'Ranges from 0 to 100. Defaults to 1.')
+@click.option('-b', '--binarization-method',
+              type=Choice(['sauvola', 'isodata', 'otsu', 'li']),
+              default='li',
+              help='Thresholding method to obtain the binary image. '
+                   'For reference, see http://scikit-image.org/docs/dev'
+                   '/auto_examples/xx_applications/plot_thresholding.html. '
+                   'Defaults to \'li\'.')
+@click.option('-i', '--invert', is_flag=True,
+              help='Invert the black and white colors of the binary image '
+                   'prior to dilation.')
+@io_handler
+def dilate(image, dilation, passes, binarization_method, invert):
+    """Thicken (dilate) IMAGE using dilation as the radius
+    for the kernel to use. The number of times the dilation process is applied
+    can be changed via the passes parameter (defautls to 1). If the image is
+    not lack and white, it will be binarized using a binarization-method, which
+    by default it's Li's algorithm (see the binarize command).
+    The black and white image can also be thickened (dilated) by adjusting
+    the dilation parameter before extracting the skeleton image.
+
+    Example::
+
+      histonets skeletonize -m thin -d 0 -b otsu file://...
+    """
+    return dilate_image(image, dilation, passes, binarization_method, invert)
 
 
 if __name__ == "__main__":

@@ -349,6 +349,32 @@ def binarize_image(image, method='li', **kwargs):
 
 
 @image_as_array
+def dilate_image(image, dilation=1, iterations=1, binarization=None,
+                 invert=False):
+    """Dilate image by morphologically thickening the white blobs using
+    dilation as the kernel radius, and repeat the process iteration times.
+    If image is not black and white, a binarization process is applied
+    according to binarization, which can be 'sauvola', 'isodata', 'otsu',
+    'li' (default, ref: binarize()).
+    """
+    # if image is all one single color, return it
+    if len(np.unique(image)) == 1:
+        return image
+    # scikit-image needs only 0's and 1's
+    mono_image = binarize_image(image, method=binarization) / 255
+    if invert:
+        mono_image = invert_image(mono_image)
+    if dilation:
+        dilation = (2 * dilation) + 1
+        dilation_kernel = np.ones((dilation, dilation), np.uint8)
+        dilated = cv2.morphologyEx(mono_image, cv2.MORPH_DILATE,
+                                   dilation_kernel, iterations=iterations)
+    else:
+        dilated = mono_image
+    return dilated.astype(np.ubyte) * 255
+
+
+@image_as_array
 def skeletonize_image(image, method=None, dilation=None, binarization=None,
                       invert=False):
     """Extract a 1 pixel wide representation of image by morphologically
@@ -368,15 +394,9 @@ def skeletonize_image(image, method=None, dilation=None, binarization=None,
     # if image is all one single color, return it
     if len(np.unique(image)) == 1:
         return image
-    # scikit-image needs only 0's and 1's
-    mono_image = binarize_image(image, method=binarization) / 255
-    if invert:
-        mono_image = invert_image(mono_image)
-    if dilation:
-        dilation = (2 * dilation) + 1
-        dilation_kernel = np.ones((dilation, dilation), np.uint8)
-        mono_image = cv2.morphologyEx(mono_image, cv2.MORPH_DILATE,
-                                      dilation_kernel)
+    # Dilation also binarizes the image
+    mono_image = dilate_image(image, dilation=dilation, invert=invert,
+                              binarization=binarization) / 255
     with warnings.catch_warnings(record=True):
         warnings.filterwarnings('ignore', category=UserWarning)
         if method == '3d':

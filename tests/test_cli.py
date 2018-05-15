@@ -590,6 +590,32 @@ class TestHistonetsCli(unittest.TestCase):
         binarized = encode_base64(fixtures_path('map_otsu.png'))
         assert binarized == result.output.strip()
 
+    def test_dilate(self):
+        result = self.runner.invoke(
+            cli.dilate,
+            [self.image_map],
+        )
+        dilated = encode_base64(fixtures_path('map_dilated_d1_i1.png'))
+        assert dilated == result.output.strip()
+
+    def test_dilate_default(self):
+        result = self.runner.invoke(
+            cli.dilate,
+            ['-b', 'li', '-d', 1, '-p', 1,
+             self.image_map],
+        )
+        dilated = encode_base64(fixtures_path('map_dilated_d1_i1.png'))
+        assert dilated == result.output.strip()
+
+    def test_dilate_invert(self):
+        result = self.runner.invoke(
+            cli.dilate,
+            ['-d', 1, '-i',
+             self.image_map],
+        )
+        dilated = encode_base64(fixtures_path('map_dilated_d1_invert.png'))
+        assert dilated == result.output.strip()
+
     def test_skeletonize(self):
         result = self.runner.invoke(
             cli.skeletonize,
