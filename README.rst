@@ -213,6 +213,48 @@ Options:
                          otherwise.
   
 
+dilate
+~~~~~~
+Usage: histonets dilate [OPTIONS] [IMAGE]
+
+Thicken (dilate) IMAGE using dilation as the radius
+for the kernel to use. The number of times the dilation process is applied
+can be changed via the passes parameter (defautls to 1). If the image is
+not lack and white, it will be binarized using a binarization-method, which
+by default it's Li's algorithm (see the binarize command).
+The black and white image can also be thickened (dilated) by adjusting
+the dilation parameter before extracting the skeleton image.
+
+Example::
+
+  histonets skeletonize -m thin -d 0 -b otsu file://...
+
+
+- IMAGE path to a local (file://) or remote (http://, https://) image file.
+  A Base64 string can also be piped as input image.
+
+Options:
+
+  -d, --dilation INTEGER RANGE    Dilation radius to thicken the binarized
+                                  image prior to perform skeletonization.
+                                  Ranges from 0 to 100. Defaults to 1.
+  -p, --passes INTEGER RANGE      Number of times the dilation is applied.
+                                  Ranges from 0 to 100. Defaults to 1.
+  -b, --binarization-method [sauvola|isodata|otsu|li]
+                                  Thresholding method to obtain the binary
+                                  image. For reference, see http://scikit-imag
+                                  e.org/docs/dev/auto_examples/xx_applications
+                                  /plot_thresholding.html. Defaults to 'li'.
+  -i, --invert                    Invert the black and white colors of the
+                                  binary image prior to dilation.
+  -o, --output FILENAME           File name to save the output. For images, if
+                                  the file extension is different than IMAGE,
+                                  a conversion is made. When not given,
+                                  standard output is used and images are
+                                  serialized using Base64; and to JSON
+                                  otherwise.
+  
+
 download
 ~~~~~~~~
 Usage: histonets download [OPTIONS] [IMAGE]

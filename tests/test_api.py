@@ -573,6 +573,28 @@ class TestHistonets(unittest.TestCase):
                                              threshold=160)
         assert np.array_equal(image_binarized, binarized)
 
+    def test_dilate(self):
+        image = cv2.imread(fixtures_path('map.png'))
+        for dilation in (None, 1, 3):
+            for passes in (1, 3):
+                dilated = histonets.dilate_image(image, dilation=dilation,
+                                                 passes=passes)
+                filename = 'map_dilated_d{}_i{}.png'.format(dilation or 0,
+                                                            passes)
+                image_dilated = cv2.imread(fixtures_path(filename), 0)
+                assert np.array_equal(dilated, image_dilated)
+
+    def test_dilate_all_black(self):
+        image = np.zeros((64, 64))
+        assert np.array_equal(image, histonets.dilate_image(image))
+
+    def test_dilate_invert(self):
+        image = cv2.imread(fixtures_path('map.png'))
+        dilated = histonets.dilate_image(image, invert=True)
+        filename = 'map_dilated_d1_invert.png'
+        image_dilated = cv2.imread(fixtures_path(filename), 0)
+        assert np.array_equal(dilated, image_dilated)
+
     def test_skeletonize(self):
         image = cv2.imread(fixtures_path('map.png'))
         for dilation in (None, 6):

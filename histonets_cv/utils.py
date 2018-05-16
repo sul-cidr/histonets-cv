@@ -129,7 +129,7 @@ class Image(object):
         elif content:
             image_format = imghdr.what(file='', h=content)
             if image_format is not None:
-                image_array = np.fromstring(content, np.uint8)
+                image_array = np.frombuffer(content, np.uint8)
                 self.image = cv2.imdecode(image_array, cv2.IMREAD_COLOR)
                 self.format = image_format
         if self.image is None:
