@@ -349,10 +349,10 @@ def binarize_image(image, method='li', **kwargs):
 
 
 @image_as_array
-def dilate_image(image, dilation=1, iterations=1, binarization=None,
+def dilate_image(image, dilation=1, passes=1, binarization=None,
                  invert=False):
     """Dilate image by morphologically thickening the white blobs using
-    dilation as the kernel radius, and repeat the process iteration times.
+    dilation as the kernel radius, and repeat the process passes times.
     If image is not black and white, a binarization process is applied
     according to binarization, which can be 'sauvola', 'isodata', 'otsu',
     'li' (default, ref: binarize()).
@@ -368,7 +368,7 @@ def dilate_image(image, dilation=1, iterations=1, binarization=None,
         dilation = (2 * dilation) + 1
         dilation_kernel = np.ones((dilation, dilation), np.uint8)
         dilated = cv2.morphologyEx(mono_image, cv2.MORPH_DILATE,
-                                   dilation_kernel, iterations=iterations)
+                                   dilation_kernel, iterations=passes)
     else:
         dilated = mono_image
     return dilated.astype(np.ubyte) * 255

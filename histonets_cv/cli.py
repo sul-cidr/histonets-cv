@@ -577,7 +577,7 @@ def graph(image, regions, pathfinding_method, simplification_method,
               default=1,
               help='Dilation radius to thicken the binarized image prior to '
                    'perform skeletonization. '
-                   'Ranges from 0 to 100. Defaults to 6.')
+                   'Ranges from 0 to 100. Defaults to 1.')
 @click.option('-p', '--passes', type=click.IntRange(0, 100),
               default=1,
               help='Number of times the dilation is applied. '

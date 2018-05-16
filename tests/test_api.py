@@ -576,11 +576,11 @@ class TestHistonets(unittest.TestCase):
     def test_dilate(self):
         image = cv2.imread(fixtures_path('map.png'))
         for dilation in (None, 1, 3):
-            for iterations in (1, 3):
+            for passes in (1, 3):
                 dilated = histonets.dilate_image(image, dilation=dilation,
-                                                 iterations=iterations)
+                                                 passes=passes)
                 filename = 'map_dilated_d{}_i{}.png'.format(dilation or 0,
-                                                            iterations)
+                                                            passes)
                 image_dilated = cv2.imread(fixtures_path(filename), 0)
                 assert np.array_equal(dilated, image_dilated)
 
