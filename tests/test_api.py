@@ -701,3 +701,17 @@ class TestHistonets(unittest.TestCase):
         json_edges = json.loads(utils.serialize_json(edges))
         assert (all(edge in json_edges for edge in graph)
                 and all(edge in graph for edge in json_edges))
+
+    def test_histogram_image(self):
+        image = cv2.imread(fixtures_path('map.png'))[::-1]
+        histogram = histonets.histogram_image(image)
+        with open(fixtures_path('map_histogram.json'), 'r') as file:
+            json_data = json.load(file)
+            assert json_data == histogram
+
+    def test_histogram_image_hex(self):
+        image = cv2.imread(fixtures_path('map.png'))[::-1]
+        histogram = histonets.histogram_image(image, method='hex')
+        with open(fixtures_path('map_histogram_hex.json'), 'r') as file:
+            json_data = json.load(file)
+            assert json_data == histogram

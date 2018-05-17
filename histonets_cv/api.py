@@ -19,6 +19,7 @@ from sklearn import preprocessing
 
 from .utils import (
     convert,
+    get_color_histogram,
     get_inner_paths,
     get_palette,
     get_quantize_method,
@@ -414,6 +415,17 @@ def skeletonize_image(image, method=None, dilation=None, binarization=None,
         else:
             skeleton = morphology.skeletonize(mono_image)
     return convert(skeleton)
+
+
+def histogram_image(image, method='rgb'):
+    """Calculate the color histogram of image (colors and their counts)"""
+    histogram = get_color_histogram(image)
+    if method == 'hex':
+        return {'#{:02X}{:02X}{:02X}'.format(*color): count
+                for color, count in histogram.items()}
+    else:
+        return {'[{}, {}, {}]'.format(r, g, b): count
+                for (r, g, b), count in histogram.items()}
 
 
 def histogram_palette(histogram, n_colors=8, method='auto', sample_fraction=5,

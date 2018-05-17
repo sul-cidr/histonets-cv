@@ -731,3 +731,29 @@ class TestHistonetsCli(unittest.TestCase):
         graph = nx.read_gexf(fixtures_path('graph.gexf'))
         assert nodeset(out) == nodeset(graph)
         assert edgeset(out) == edgeset(graph)
+
+    def test_histogram(self):
+        result = self.runner.invoke(
+            cli.histogram,
+            ['-m', 'rgb',
+             self.image_map],
+        )
+        with open(fixtures_path('map_histogram.json'), 'r') as file:
+            json_data = json.load(file)
+            assert json_data == json.loads(result.output.strip())
+
+    def test_histogram_default(self):
+        result = self.runner.invoke(cli.histogram, [self.image_map])
+        with open(fixtures_path('map_histogram.json'), 'r') as file:
+            json_data = json.load(file)
+            assert json_data == json.loads(result.output.strip())
+
+    def test_histogram_hex(self):
+        result = self.runner.invoke(
+            cli.histogram,
+            ['-m', 'hex',
+             self.image_map],
+        )
+        with open(fixtures_path('map_histogram_hex.json'), 'r') as file:
+            json_data = json.load(file)
+            assert json_data == json.loads(result.output.strip())

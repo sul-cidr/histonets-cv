@@ -227,7 +227,7 @@ the dilation parameter before extracting the skeleton image.
 
 Example::
 
-  histonets skeletonize -m thin -d 0 -b otsu file://...
+  histonets dilate -d 6 -p 1 -b otsu file://...
 
 
 - IMAGE path to a local (file://) or remote (http://, https://) image file.
@@ -368,6 +368,37 @@ Options:
                                   standard output is used and images are
                                   serialized using Base64; and to JSON
                                   otherwise.
+  
+
+histogram
+~~~~~~~~~
+Usage: histonets histogram [OPTIONS] [IMAGE]
+
+Extract the histogram of IMAGE in a JSON string representing a
+  dictionary with colors as keys and the count (pixels) of those colors as
+  values. Colors can be given as a list of its RGB components (default), or
+  in hexadecimal format preceded by the hash character (#).
+
+Example::
+
+  histonets histogram -c hex file://...
+
+
+- IMAGE path to a local (file://) or remote (http://, https://) image file.
+  A Base64 string can also be piped as input image.
+
+Options:
+
+  -m, --mode [rgb|hex]   Color code to represent the colors in the histogram.
+                         The option 'rgb' returns colors as lists of the R, G,
+                         and B components that range from 0 to 255. If set to
+                         'hex', an hexadecimal representation will be used.
+                         Defaults to 'rgb'.
+  -o, --output FILENAME  File name to save the output. For images, if the file
+                         extension is different than IMAGE, a conversion is
+                         made. When not given, standard output is used and
+                         images are serialized using Base64; and to JSON
+                         otherwise.
   
 
 match
