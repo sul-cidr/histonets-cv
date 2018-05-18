@@ -14,6 +14,7 @@ from .api import (
     dilate_image,
     extract_edges,
     histogram_equalization,
+    histogram_image,
     histogram_palette,
     match_templates,
     remove_blobs,
@@ -604,9 +605,32 @@ def dilate(image, dilation, passes, binarization_method, invert):
 
     Example::
 
-      histonets skeletonize -m thin -d 0 -b otsu file://...
+      histonets dilate -d 6 -p 1 -b otsu file://...
     """
     return dilate_image(image, dilation, passes, binarization_method, invert)
+
+
+@main.command()
+@click.option('-m', '--mode',
+              type=Choice(['rgb', 'hex']),
+              default='rgb',
+              help='Color code to represent the colors in the histogram. '
+                   'The option \'rgb\' returns colors as lists of the R, G, '
+                   'and B components that range from 0 to 255. If set to '
+                   '\'hex\', an hexadecimal representation will be used. '
+                   'Defaults to \'rgb\'.')
+@io_handler
+def histogram(image, mode):
+    """Extract the histogram of IMAGE in a JSON string representing a
+      dictionary with colors as keys and the count (pixels) of those colors as
+      values. Colors can be given as a list of its RGB components (default), or
+      in hexadecimal format preceded by the hash character (#).
+
+    Example::
+
+      histonets histogram -c hex file://...
+    """
+    return histogram_image(image, mode)
 
 
 if __name__ == "__main__":
